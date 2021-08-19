@@ -1,0 +1,20 @@
+{
+  "name": "payper",
+  "version": "0.0.0",
+  "description": "Payper allows you to fold code into reusable, sharable bundles, while only paying for what you use.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/3rd-Eden/payper"
+  },
+  "keywords": [
+    "payper",
+    "asset",
+    "serving"
+  ],
+  "author": "Arnout Kazemier",
+  "license": "MIT"
+}
