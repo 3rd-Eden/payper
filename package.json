@@ -16,5 +16,9 @@
     "serving"
   ],
   "author": "Arnout Kazemier",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "assume": "^2.3.0",
+    "mocha": "^9.0.3"
+  }
 }
