@@ -9,7 +9,7 @@
  * @returns {String} Notification for the user about the missing requested bundle
  * @public
  */
-module.exports = async missing({ name, version }) {
+module.exports = async function missing({ name, version, bundle }) {
   const payload = `
     if (typeof console !== 'undefined' && console.error && console.group) {
       [
