@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "description": "Payper allows you to fold code into reusable, sharable bundles, while only paying for what you use.",
   "main": "index.js",
+  "exports": {
+    "./worker": "./worker/index.js",
+    "./api": "./api/index.js",
+    "./edge": "./edge/index.js"
+  },
   "scripts": {
     "test": "mocha **/*.test.js"
   },
