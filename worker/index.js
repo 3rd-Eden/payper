@@ -23,6 +23,7 @@ class Payper {
   constructor({ version, ttl } = {}) {
     this.cache = new CacheStorage(version);
     this.settings = { ttl };
+    this.format = format;
   }
 
   /**
@@ -93,7 +94,7 @@ class Payper {
    */
   async preload(missing, { url }) {
     const bundles = missing.map(({ bundle }) => bundle);
-    let response = await fetch(format(bundles, url));
+    let response = await fetch(this.format(bundles, url));
 
     if (!response.ok || !(response.status < 400)) {
       throw new Error('Unable to fetch the optimized payer bundle');

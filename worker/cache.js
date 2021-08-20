@@ -24,6 +24,7 @@ class CacheStorage {
   constructor(version) {
     this.name = `payper@${version}`;
     this.version = version;
+    this.format = format;
   }
 
   /**
@@ -40,7 +41,7 @@ class CacheStorage {
     const cache = await caches.open(this.name);
 
     const bundles = await Promise.all(requested.map(async (data) => {
-      const has = await cache.matches(format(data.bundle));
+      const has = await cache.matches(this.format(data.bundle));
       return has ? null : data;
     }));
 
@@ -58,7 +59,7 @@ class CacheStorage {
     const cache = await caches.open(this.name);
 
     const bundles = await Promise.all(requested.map((data) => {
-      return cache.match(format(data.bundle), matchOpts);
+      return cache.match(this.format(data.bundle), matchOpts);
     }));
 
     this.hit(requested);
@@ -76,7 +77,7 @@ class CacheStorage {
     const cache = await caches.open(this.name);
 
     requested.map(async (data) => {
-      const url = format(data.bundle);
+      const url = this.format(data.bundle);
       const response = await cache.match(url, matchOpts);
 
       //
@@ -112,7 +113,7 @@ class CacheStorage {
     const cache = await caches.open(this.name);
 
     await Promise.all(bundles.map(function introduce({ bundle, response }) {
-      const url = format(bundle);
+      const url = this.format(bundle);
 
       response.headers.set('payper-hit', Date.now());
       return cache.put(response);
