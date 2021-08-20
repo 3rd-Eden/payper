@@ -91,9 +91,9 @@ class Payper {
       const handler = this.bundles.get('bundle:', name);
 
       let meta = this.meta({ name, version, cache: true });
-      let bundle = '';
+      let contents = '';
 
-      try
+      try {
         //
         // If we've found a handler for the bundle name we're going to invoke it
         // with the version that is requested. The handler then fetch the required
@@ -101,7 +101,7 @@ class Payper {
         // version is missing and no bundle could be generated.
         //
         if (handler) {
-          bundle = await handler({ name, version, bundle });
+          contents = await handler({ name, version, bundle });
         }
 
         //
@@ -111,10 +111,10 @@ class Payper {
         // lookups instead.
         //
         if (!handler && asterisk) {
-          bundle = await asterisk({ name, version, bundle });
+          contents = await asterisk({ name, version, bundle });
         }
       } catch (e) {
-        bundle = await this.failure({ name, version, bundle, error: e.message });
+        contents = await this.failure({ name, version, bundle, error: e.message });
         meta = this.meta({ name, version, cache: false });
       }
 
@@ -126,11 +126,11 @@ class Payper {
       // wasn't missing critical.
       //
       if (!bundle) {
-        bundle = await this.missing({ name, version, bundle });
+        contents = await this.missing({ name, version, bundle });
         meta = this.meta({ name, version, cache: false });
       }
 
-      return [bundle, meta].join('\n');
+      return [contents, meta].join('\n');
     }
 
     const payload = await Promise.all(requested.map(gatherSources));
