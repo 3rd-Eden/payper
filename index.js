@@ -8,8 +8,10 @@ the following packages instead:
    - require('payper/server')
    - require('payper/worker')
 
-This way you are only importing the code that you need. If you need more information
-please the usage section of our README.
+This way you are only importing the code that you need. If you need more
+information please see the usage section of our README:
+
+- https://github.com/3rd-Eden/payper#readme
 
 Thanks for using Payper <3
 
