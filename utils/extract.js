@@ -15,7 +15,7 @@
  * @returns {Array}
  * @public
  */
-function extract(url) {
+module.exports = function extract(url) {
   return (url.split('/payper/').pop() || '').split('/')
   .map(function parse(bundle) {
     //
@@ -27,10 +27,13 @@ function extract(url) {
     // a fingerprint/hash of the bundle).
     //
     const lastIndex = bundle.lastIndexOf('@');
-    const name = bundle.slice(0, lastIndex);
-    const version = bundle.slice(lastIndex +1);
+    const versioned = !!~lastIndex;
 
-    return { name, version, bundle };
+    return {
+      name: bundle.slice(0,  versioned ? lastIndex : bundle.length),
+      version: versioned ? bundle.slice(lastIndex +1) : '',
+      bundle
+    };
   });
 }
 

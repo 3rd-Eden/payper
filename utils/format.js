@@ -18,8 +18,8 @@ module.exports = function format(path, base = self.registration.scope) {
   //
   const root = new URL(base);
 
-  root.pathname = `/payper/${bundle}`;    // Force our API endpoint
-  root.search = '';                       // Sanitizing of the request.
+  root.pathname = `/payper/${[].concat(path).join('/')}`;
+  root.search = '';
 
   return root.href;
 }

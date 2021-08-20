@@ -1,4 +1,5 @@
 const extract = require('../utils/extract.js');
+const matches = require('../utils/matches.js');
 const missing = require('./missing.js');
 const failure = require('./failure.js');
 
@@ -10,9 +11,11 @@ const failure = require('./failure.js');
 class Payper {
   constructor() {
     this.bundles = new Map();
+
     this.extract = extract;
     this.missing = missing;
     this.failure = failure;
+    this.matches = matches;
   }
 
   /**
@@ -35,6 +38,20 @@ class Payper {
     }
 
     this.bundles.set('bundle:'+ name, handler);
+  }
+
+  /**
+   * Intercepts an incoming HTTP requests and checks if it matches our API
+   * namespace so we can process the pathname.
+   *
+   * @param {HTTPRequest} req Incoming HTTP request
+   * @param {HTTPResponse} res Outgoing HTTP response
+   * @returns {Boolean|Promise} False when it doesn't matches, Promise when it does.
+   * @public
+   */
+  intercept(req, res) {
+    if (!this.matches(req)) return false;
+    return this.respond(req, res);
   }
 
   /**

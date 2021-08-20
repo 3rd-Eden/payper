@@ -1,4 +1,5 @@
 const format = require('../utils/format.js');
+const matches = require('../utils/matches');
 const CacheStorage = require('./cache.js');
 
 /**
@@ -24,6 +25,7 @@ class Payper {
     this.cache = new CacheStorage(version);
     this.settings = { ttl };
     this.format = format;
+    this.matches = matches;
   }
 
   /**
@@ -163,19 +165,6 @@ class Payper {
     }
 
     return chunks;
-  }
-
-  /**
-   * Check if the request we're intercepting is a request for the Payper API so
-   * we know if we need to intercept the request.
-   *
-   * @param {Request} request Fetch request.
-   * @returns {Boolean} Indication if we need to intercept.
-   * @public
-   */
-  matches(request) {
-    const payper = /\/payper\//.test(request.url);
-    return payper && request.method === 'GET';
   }
 }
 
