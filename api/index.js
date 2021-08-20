@@ -88,7 +88,7 @@ class Payper {
      * @private
      */
     const gatherSources = async ({ name, version, bundle }) => {
-      const handler = this.bundles.get('bundle:', name);
+      const handler = this.bundles.get('bundle:'+ name);
 
       let meta = this.meta({ name, version, cache: true });
       let contents = '';
@@ -125,7 +125,7 @@ class Payper {
       // to prime the rest of the cache and *hope* that the missing bundle
       // wasn't missing critical.
       //
-      if (!bundle) {
+      if (!contents) {
         contents = await this.missing({ name, version, bundle });
         meta = this.meta({ name, version, cache: false });
       }

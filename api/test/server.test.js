@@ -74,7 +74,7 @@ describe('Payper Server', function () {
       assume(result).is.a('string');
       assume(result).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":false}) */');
       assume(result).includes('404: Could not find the requested bundle');
-      assume(result).includes('http://github.com/3rd-Eden/payper#missing');
+      assume(result).includes('https://github.com/3rd-Eden/payper/tree/main/api#missing');
     });
 
     it('returns a console blob when an known bundle returns no data', async function () {
@@ -99,7 +99,7 @@ describe('Payper Server', function () {
       assume(missing).is.a('string');
       assume(missing).includes('/*! Payper meta({"name":"foo","version":"2.2.9","cache":false}) */');
       assume(missing).includes('404: Could not find the requested bundle');
-      assume(missing).includes('http://github.com/3rd-Eden/payper#missing');
+      assume(missing).includes('https://github.com/3rd-Eden/payper/tree/main/api#missing');
     });
 
     it('combines multiple bundles into a single response', async function () {
@@ -117,7 +117,23 @@ describe('Payper Server', function () {
       assume(result).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":true}) */');
       assume(result).includes('/*! Payper meta({"name":"bar","version":"2.2.9","cache":false}) */');
       assume(result).includes('404: Could not find the requested bundle');
-      assume(result).includes('http://github.com/3rd-Eden/payper#missing');
+      assume(result).includes('https://github.com/3rd-Eden/payper/tree/main/api#missing');
+    });
+
+    it('returns a console blob when the handler throws an error', async function () {
+      payper.add('foo', async function handler({ version }) {
+        throw new Error('Simulating a failed handler');
+      });
+
+      const result = await payper.concat([
+        { name: 'foo', version: '1.2.9', bundle: 'foo@1.2.9' }
+      ]);
+
+      assume(result).is.a('string');
+      assume(result).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":false}) */');
+      assume(result).includes('500: An error occured while loading bundle');
+      assume(result).includes('Simulating a failed handler');
+      assume(result).includes('https://github.com/3rd-Eden/payper/tree/main/api#failure');
     });
   });
 });
