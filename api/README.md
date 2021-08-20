@@ -1,6 +1,6 @@
 # Payper API
 
-Run payper on your own server or use it as development tool and use our edge
+Run Payper on your own server or use it as development tool and use our edge
 functionality in production, you decide what is best for your use-case.
 
 ## Usage
@@ -67,4 +67,117 @@ payper.add(async function catchall({ name, version }) {
 });
 ```
 
+### Intercepting the Payper HTTP requests
+
+#### matches
+
+Checks if the request needs to be handled by the Payper system. It accepts an
+object with a `url` and `method` as properties. For example the incoming HTTP
+`Request` instance can be used here:
+
+```js
+payper.matches(req); // returns true or false
+```
+
+#### extract
+
+Extracts the requested bundles from the given URL, this generates the payload
+that needs to be passed into our `payper.concat` method. It accepts the inbound
+`url` as argument:
+
+```js
+const requested = payper.extract(req.url);
+```
+
+See [utils/extract][extract] for more indepth API documentation.
+
+#### concat
+
+It accepts the result that previously got generated using the [extract](#extract)
+method as argument. The `concat` method is an **asynchronous** function and
+should be called with `await` or processed as Promise.
+
+The function returns contents formatted bundle that matches our Service Workers
+expectations in terms of formatting and structure. This result should be send
+back as response to the incoming HTTP request. It's worth noting that this is a
+JavaScript bundle and that the appropriate `Content-Type` headers needs to be
+set to `text/javascript` in order to correctly executed in the browser.
+
+```js
+const requested = payper.extract(req.url);
+const response = await payper.concat(requested);
+```
+
+### Framework integration
+
+#### Express
+
+```js
+const Payper = require('payper/api');
+const express = require('express');
+const app = express();
+
+//
+// Setup your Payper instance and add the bundles your application uses.
+//
+const payper = new Payper();
+payper.add('vendor', async function () {
+  // your bundle retrieval logic here
+});
+
+//
+// Declare the Payper route we need to respond to, that is `/payper/*` using a
+// wildcard so all paths after `/payper/` are send with the request.
+//
+app.get('/payper/*', async function intercept(req, res) {
+  const requested = payper.extract(req.url);
+  const response = await payper.concat(requested);
+
+  res.set('Content-Type', 'text/javascript');
+  res.send(response);
+});
+
+app.listen(3000, function listen() {
+  console.log('Example app listening at http://localhost:3000')
+});
+```
+
+#### Fastify
+
+```js
+const fastify = require('fastify')({ logger: true });
+const Payper = require('payper/api');
+
+//
+// Setup your Payper instance and add the bundles your application uses.
+//
+const payper = new Payper();
+payper.add('vendor', async function () {
+  // your bundle retrieval logic here
+});
+
+//
+// Declare the Payper route we need to respond to, that is `/payper/*` using a
+// wildcard so all paths after `/payper/` are send with the request.
+//
+fastify.get('/payper/*', async intercept(request, reply) {
+  const requested = payper.extract(req.url);
+  const response = await payper.concat(requested);
+
+  reply
+    .type('text/javascript')
+    .send(response);
+});
+
+(async function start() {
+  try {
+    await fastify.listen(3000);
+  } catch (err) {
+    fastify.log.error(err);
+    process.exit(1);
+  }
+})();
+```
+
+[extract]: https://github.com/3rd-Eden/payper/tree/main/utils#extract
 [install]: https://github.com/3rd-Eden/payper#installation
