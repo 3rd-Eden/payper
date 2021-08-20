@@ -28,7 +28,7 @@ npm install --save payper
 
 This single module provides access to:
 
-- [Payper API](./server/README.md)
+- [Payper API](./api/README.md)
 - [Service Worker](./worker/README.md)
 - [Edge/Lambda/Cloud functions](./edge/README.md)
 
