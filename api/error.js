@@ -5,20 +5,19 @@
  * only going to log this to the console.
  *
  * @param {String} bundle The unsanitized name and version of the bundle
- * @returns {String} Notification for the user about the missing requested bundle.
+ * @param {String} error The generated error message without stack.
+ * @returns {String} Notification for the user about the failed requested bundle.
  * @public
  */
-module.exports = async function missing({ bundle }) {
+module.exports = async function failure({ bundle, error }) {
   const payload = `
     if (typeof console !== 'undefined' && console.error && console.group) {
       [
         ['group'],
-        ['error', '404: Could not find the requested bundle '+ ${JSON.stringify(bundle)}],
-        ['error', 'The following issues cause'],
-        ['error', '1. (client-side) You misspelled the name of the bundle'],
-        ['error', '2. (server-side) The bundle is not registered with the server'],
-        ['error', '3. (client/server-side) The requested version is not available'],
-        ['error', 'Additional info: https://github.com/3rd-Eden/payper/tree/main/api#missing']
+        ['error', '500: An error occured while loading bundle: '+ ${JSON.stringify(bundle)}],
+        ['error', 'Error message: '+ ${JSON.stringify(error)}],
+        ['error', 'This is most likely caused by an error in your bundle handler'],
+        ['error', 'Additional info: https://github.com/3rd-Eden/payper/tree/main/api#failure']
         ['groupEnd']
       ].forEach(function missing(line) {
         console[line[0]](line[1] ? '[PAYPER]'+ line[1] : undefined);

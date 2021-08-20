@@ -1,5 +1,6 @@
 const extract = require('../utils/extract.js');
 const missing = require('./missing.js');
+const failure = require('./failure.js');
 
 /**
  *
@@ -11,6 +12,7 @@ class Payper {
     this.bundles = new Map();
     this.extract = extract;
     this.missing = missing;
+    this.failure = failure;
   }
 
   /**
@@ -85,30 +87,35 @@ class Payper {
      * @returns {String} Gathered bundle source.
      * @private
      */
-    const gatherSources = async ({ name, version }) => {
+    const gatherSources = async ({ name, version, bundle }) => {
       const handler = this.bundles.get('bundle:', name);
 
       let meta = this.meta({ name, version, cache: true });
       let bundle = '';
 
-      //
-      // If we've found a handler for the bundle name we're going to invoke it
-      // with the version that is requested. The handler then fetch the required
-      // contents and return it. When nothing is returned we assume that the
-      // version is missing and no bundle could be generated.
-      //
-      if (handler) {
-        bundle = await handler({ name, version });
-      }
+      try
+        //
+        // If we've found a handler for the bundle name we're going to invoke it
+        // with the version that is requested. The handler then fetch the required
+        // contents and return it. When nothing is returned we assume that the
+        // version is missing and no bundle could be generated.
+        //
+        if (handler) {
+          bundle = await handler({ name, version, bundle });
+        }
 
-      //
-      // We do allow a catch-all handler for when a bundle specific handler is
-      // not specified. This can be useful in the case where your assets are
-      // externally hosted e.g. in a database and you just to use that for
-      // lookups instead.
-      //
-      if (!handler && asterisk) {
-        bundle = await asterisk({ name, version });
+        //
+        // We do allow a catch-all handler for when a bundle specific handler is
+        // not specified. This can be useful in the case where your assets are
+        // externally hosted e.g. in a database and you just to use that for
+        // lookups instead.
+        //
+        if (!handler && asterisk) {
+          bundle = await asterisk({ name, version, bundle });
+        }
+      } catch (e) {
+        bundle = await this.failure({ name, version, bundle, error: e.message });
+        meta = this.meta({ name, version, cache: false });
       }
 
       //
@@ -119,7 +126,7 @@ class Payper {
       // wasn't missing critical.
       //
       if (!bundle) {
-        bundle = await this.missing({ name, version });
+        bundle = await this.missing({ name, version, bundle });
         meta = this.meta({ name, version, cache: false });
       }
 
