@@ -1,4 +1,4 @@
-const { describe, it } = require('mocha');
+const { describe, it, beforeEach } = require('mocha');
 const Payper = require('../index.js');
 const assume = require('assume');
 

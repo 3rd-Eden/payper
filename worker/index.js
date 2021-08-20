@@ -2,14 +2,14 @@ const format = require('../utils/format.js');
 const CacheStorage = require('./cache.js');
 
 /**
- * The PayperWorker is our request optimization strategy. It allows each page to
- * define the bundles they need to render/interact with the page without having
- * to worry about creating too large bundle which potentially contains code the
- * current page doesn't need or having to worry about too many small bundles as
- * they will be reduced to a single HTTP request.
+ * The Payper Service Worker is our request optimization strategy. It allows
+ * each page to define the bundles they need to render/interact with the page
+ * without having to worry about creating too large bundle which potentially
+ * contains code the current page doesn't need or having to worry about too many
+ * small bundles as they will be reduced to a single HTTP request.
  *
- * The PayperWorker intercepts requests for the `/payper` API route and checks
- * which bundles are requested to be concatinated. From all those bundles it
+ * The Service Worker intercepts requests for the `/payper` scope and checks
+ * which bundles are requested to be concatenated. From all those bundles it
  * checks which are already cached locally, and removes them from the original
  * request. Only the bundles that are not cached will be requested resulting in
  * less bytes over the wire. Once the request is completed all the new bundles
