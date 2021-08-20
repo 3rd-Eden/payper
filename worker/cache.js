@@ -15,7 +15,7 @@ const matchOpts = {
 
 /**
  * CacheStorage provides an interface that allows optimization of various
- * CacheStorage API related tasks within a ServiceWorker context.
+ * CacheStorage API related tasks within a Service Worker context.
  *
  * @class CacheStorage
  * @public
@@ -25,6 +25,26 @@ class CacheStorage {
     this.name = `payper@${version}`;
     this.version = version;
     this.format = format;
+  }
+
+  /**
+   * Searches the CacheStorage API for out of date cache versions and deletes
+   * them. This will only delete the caches that are created by this module, not
+   * our users caches.
+   *
+   * @public
+   */
+  async clean() {
+    const keys = await caches.keys();
+    const current = this.version;
+
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[0];
+
+      if (key.startsWith('payper@') && key.split('@')[0] !== current) {
+        await caches.delete(key)
+      }
+    }
   }
 
   /**

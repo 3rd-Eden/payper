@@ -47,7 +47,9 @@ class Payper {
    * @private
    */
   activate(event) {
-    event.waitUntil(this.cache.invalidate(this.settings.ttl));
+    event.waitUntil(
+      this.cache.clean().then(this.cache.invalidate(this.settings.ttl))
+    );
   }
 
   /**
