@@ -36,22 +36,47 @@ class Payper {
    */
   register() {
     [
-      'fetch',
-      'activate'
+      'fetch',        // Intercept the requests.
+      'activate',     // Clean our caches.
+      'install'       // Speeds up activation of our Service Worker
     ].forEach(method => self.addEventListener(method, this[method].bind(this)));
+  }
+
+  /**
+   * The Service Worker was installed, so we want to notify the Service Worker
+   * that we should be activated as soon as possible to be able to intercept and
+   * transform the outgoing Payper requests.
+   *
+   * @private
+   */
+  install() {
+    //
+    // Normally a Service Worker would only activate on install after a refresh
+    // but want to enhance the requests as quickly as possible so we can start
+    // building our cache and "improve" the next visit.
+    //
+    self.skipWaiting();
   }
 
   /**
    * The ServiceWorker has become active, we want to purge the cache to see if
    * anything needs invalidation.
    *
-   * @param {ActivationEvent} event
    * @private
    */
-  activate(event) {
-    event.waitUntil(
-      this.cache.clean().then(this.cache.invalidate(this.settings.ttl))
-    );
+  async activate() {
+    self.clients.claim();
+
+    //
+    // We don't want to use the `event.waitUntil` as our cache cleaning
+    // operations are not vital for the behaviour. If the cache version is
+    // increased, we're using a different clean cache anyways, and the
+    // invalidation pass will only evict old cache items to be "nice" for the
+    // users devices. The bundles that we cache are versioned for cache busting
+    // reasons anyways.
+    //
+    await this.cache.clean();
+    await this.cache.invalidate(this.settings.ttl);
   }
 
   /**
