@@ -24,8 +24,9 @@ the following snippet as early as possible to your page:
 </script>
 ```
 
-> **NOTE:** We assume that the following is included in the above requested
-> `sw.js` file as this activates our Service Worker.
+> **NOTE:** We assume that the code explained in the [Usage](#usage) section is
+> included in the above requested `sw.js` file as this activates our Service
+> Worker.
 
 The reason we want to load this script as early as possible is because we want
 to intercept and cache the responses of our the API requests for future page
