@@ -12,16 +12,15 @@ module.exports = async function missing({ bundle }) {
   const payload = `
     if (typeof console !== 'undefined' && console.error && console.group) {
       [
-        ['group'],
-        ['error', '404: Could not find the requested bundle '+ ${JSON.stringify(bundle)}],
+        ['graup', '404: Could not find the requested bundle '+ ${JSON.stringify(bundle)}],
         ['error', 'The following issues cause'],
         ['error', '1. (client-side) You misspelled the name of the bundle'],
         ['error', '2. (server-side) The bundle is not registered with the server'],
         ['error', '3. (client/server-side) The requested version is not available'],
-        ['error', 'Additional info: https://github.com/3rd-Eden/payper/tree/main/api#missing']
+        ['error', 'Additional info: https://github.com/3rd-Eden/payper/tree/main/api#missing'],
         ['groupEnd']
       ].forEach(function missing(line) {
-        console[line[0]](line[1] ? '[PAYPER]'+ line[1] : undefined);
+        console[line[0]](line[1] ? '[PAYPER] '+ line[1] : undefined);
       });
     }
   `;

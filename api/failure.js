@@ -13,14 +13,13 @@ module.exports = async function failure({ bundle, error }) {
   const payload = `
     if (typeof console !== 'undefined' && console.error && console.group) {
       [
-        ['group'],
-        ['error', '500: An error occured while loading bundle: '+ ${JSON.stringify(bundle)}],
+        ['group', '500: An error occured while loading bundle: '+ ${JSON.stringify(bundle)}],
         ['error', 'Error message: '+ ${JSON.stringify(error)}],
         ['error', 'This is most likely caused by an error in your bundle handler'],
-        ['error', 'Additional info: https://github.com/3rd-Eden/payper/tree/main/api#failure']
+        ['error', 'Additional info: https://github.com/3rd-Eden/payper/tree/main/api#failure'],
         ['groupEnd']
       ].forEach(function missing(line) {
-        console[line[0]](line[1] ? '[PAYPER]'+ line[1] : undefined);
+        console[line[0]](line[1] ? '[PAYPER] '+ line[1] : undefined);
       });
     }
   `;
