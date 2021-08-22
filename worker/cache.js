@@ -60,7 +60,7 @@ class CacheStorage {
     const cache = await caches.open(this.name);
 
     const bundles = await Promise.all(requested.map(async (data) => {
-      const has = await cache.match(this.format(data.bundle));
+      const has = await cache.match(this.format(data.bundle), matchOpts);
       return has ? null : data;
     }));
 
@@ -78,14 +78,15 @@ class CacheStorage {
     const cache = await caches.open(this.name);
 
     const bundles = await Promise.all(requested.map(async (data) => {
-      const response = cache.match(this.format(data.bundle), matchOpts);
+      const response = await cache.match(this.format(data.bundle), matchOpts);
 
-      return { ...data, response }
+      if (!response) return;
+      return { ...data, response };
     }));
 
     this.hit(requested);
 
-    return bundles.reduce(function toObject(result, data) {
+    return bundles.filter(Boolean).reduce(function toObject(result, data) {
       result[data.bundle] = data;
       return result;
     }, {});
@@ -104,6 +105,8 @@ class CacheStorage {
     requested.map(async (data) => {
       const url = this.format(data.bundle);
       const response = await cache.match(url, matchOpts);
+
+      if (!response) return;
 
       //
       // This is where the magic happens. We're introducing a new header to the

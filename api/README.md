@@ -79,33 +79,20 @@ object with a `url` and `method` as properties. For example the incoming HTTP
 payper.matches(req); // returns true or false
 ```
 
-#### extract
-
-Extracts the requested bundles from the given URL, this generates the payload
-that needs to be passed into our `payper.concat` method. It accepts the inbound
-`url` as argument:
-
-```js
-const requested = payper.extract(req.url);
-```
-
-See [utils/extract][extract] for more indepth API documentation.
-
 #### concat
 
-It accepts the result that previously got generated using the [extract](#extract)
-method as argument. The `concat` method is an **asynchronous** function and
-should be called with `await` or processed as Promise.
+It accepts the `/payper/{more paths here}` as first argument. The `concat`
+method is an **asynchronous** function and should be called with `await` or
+processed as Promise.
 
-The function returns contents formatted bundle that matches our Service Workers
+The function returns a formatted bundle that matches our Service Workers
 expectations in terms of formatting and structure. This result should be send
 back as response to the incoming HTTP request. It's worth noting that this is a
 JavaScript bundle and that the appropriate `Content-Type` headers needs to be
 set to `text/javascript` in order to correctly executed in the browser.
 
 ```js
-const requested = payper.extract(req.url);
-const response = await payper.concat(requested);
+const response = await payper.concat(request);
 ```
 
 ### Framework integration
@@ -130,8 +117,7 @@ payper.add('vendor', async function () {
 // wildcard so all paths after `/payper/` are send with the request.
 //
 app.get('/payper/*', async function intercept(req, res) {
-  const requested = payper.extract(req.url);
-  const response = await payper.concat(requested);
+  const response = await payper.concat(res);
 
   res.set('Content-Type', 'text/javascript');
   res.send(response);
@@ -161,7 +147,6 @@ payper.add('vendor', async function () {
 // wildcard so all paths after `/payper/` are send with the request.
 //
 fastify.get('/payper/*', async intercept(request, reply) {
-  const requested = payper.extract(req.url);
   const response = await payper.concat(requested);
 
   reply

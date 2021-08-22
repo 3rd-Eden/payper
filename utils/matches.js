@@ -6,7 +6,7 @@
  * @returns {Boolean} Indication if we need to intercept.
  * @public
  */
-module.exports = function matches({ url, method }) {
+module.exports = function matches({ url, method = 'GET' } = {}) {
   const payper = /\/payper\//.test(url);
 
   return payper && (method === 'GET' || method === 'HEAD');

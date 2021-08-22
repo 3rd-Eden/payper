@@ -126,12 +126,7 @@ class Payper {
       return failure;
     }
 
-    //
-    // Update the cache with the freshly requested bundles so we can do a fully
-    // requested
-    //
     const { fresh, requested } = response;
-    event.waitUntil(this.cache.fill(fresh));
 
     //
     // Now that we have all the freshly requested bundles we want to gather the
@@ -139,7 +134,7 @@ class Payper {
     // response.
     //
     const cached = await this.cache.gather(requested.filter(function filter(data) {
-      return data.bundle in bundles;
+      return !(data.bundle in fresh);
     }));
 
     //
@@ -147,12 +142,26 @@ class Payper {
     // included in exactly the same order as the original HTTP requested in case
     // ordering matters for the execution of the bundles.
     //
-    const contents = new Blob(requested.map(function merge(data) {
-      if (data.name in cached) return cached[data.name].response;
+    const responses = await Promise.all(requested.map(async function merge(data) {
+      if (data.bundle in cached) {
+        return await cached[data.bundle].response.text();
+      }
 
-      return bundles[data.name];
-    }), { type: 'text/javascript'});
+      //
+      // Fresh responses need to be cloned as the same object of data is going
+      // to be passed into our cache storage which assumes that the responses
+      // are not yet consumed.
+      //
+      return await fresh[data.bundle].response.clone().text();
+    }));
 
+    //
+    // Update the cache with the freshly requested bundles so we can do a fully
+    // requested
+    //
+    event.waitUntil(this.cache.fill(fresh));
+
+    const contents = new Blob(responses, { type: 'text/javascript'});
     return new Response(contents, { status: 200, statusText: 'OK' });
   }
 
@@ -165,14 +174,20 @@ class Payper {
    * @private
    */
   async request(url) {
+    let fresh = {};
     const requested = this.extract(url)
     const missing = await this.cache.missing(requested);
+
+    //
+    // In the case where we everything cached, we want to return early so no
+    // empty request is made to the server as this would result in /payper/
+    // request without any bundle data.
+    //
+    if (!missing.length) return { requested, fresh };
 
     const bundles = missing.map(({ bundle }) => bundle);
     const payperapi = this.format(bundles, url);
     const response = await fetch(payperapi);
-
-    let fresh;
 
     try {
       //
@@ -204,11 +219,11 @@ class Payper {
    * cache to promote re-use of bundles across multiple requests.
    *
    * @param {String} contents The HTTP response.
-   * @returns {Array} Parsed bundles.
+   * @returns {Object} Parsed bundles mapped by bundle.
    * @private
    */
   parse(contents) {
-    const chunks = [];
+    const chunks = {};
     const comment = /\/\*! Payper meta\(["{}:,._\-a-z0-9]+\) \*\//i
 
     //
@@ -233,7 +248,7 @@ class Payper {
       // Include the meta data, bundle name, and data as chunk information so we
       // have enough information to construct a single API response.
       //
-      chunks.push({ name, version, bundle, response, cache: !!cache });
+      chunks[bundle] = { name, version, bundle, response, cache: !!cache };
       start = end;
     }
 

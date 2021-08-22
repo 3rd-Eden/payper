@@ -45,9 +45,7 @@ describe('Payper Server', function () {
         return 'bar';
       });
 
-      const result = await payper.concat([
-        { name: 'foo', version: '1.2.9', bundle: 'foo@1.2.9' }
-      ]);
+      const result = await payper.concat('/payper/foo@1.2.9');
 
       assume(called).is.true();
     });
@@ -57,9 +55,7 @@ describe('Payper Server', function () {
         return 'this is the actual bundle content that we returned';
       });
 
-      const result = await payper.concat([
-        { name: 'foo', version: '1.2.9', bundle: 'foo@1.2.9' }
-      ]);
+      const result = await payper.concat('/payper/foo@1.2.9');
 
       assume(result).is.a('string');
       assume(result).includes('this is the actual bundle content that we returned');
@@ -67,9 +63,7 @@ describe('Payper Server', function () {
     });
 
     it('returns a console blob when an unknown bundle is requested', async function () {
-      const result = await payper.concat([
-        { name: 'foo', version: '1.2.9', bundle: 'foo@1.2.9' }
-      ]);
+      const result = await payper.concat('/payper/foo@1.2.9');
 
       assume(result).is.a('string');
       assume(result).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":false}) */');
@@ -82,19 +76,14 @@ describe('Payper Server', function () {
         throw new Error('this is going to break');
       });
 
-      const result = await payper.concat([
-        { name: 'foo', version: '1.2.9', bundle: 'foo@1.2.9' }
-      ]);
+      const result = await payper.concat('/payper/foo@1.2.9');
 
-      console.log(result)
       const funk = new Function('console', result);
       assume(funk.bind(funk, console)).does.not.throw();
     });
 
     it('can evaluate the missing bundle console blob', async function () {
-      const result = await payper.concat([
-        { name: 'foo', version: '1.2.9', bundle: 'foo@1.2.9' }
-      ]);
+      const result = await payper.concat('/payper/foo@1.2.9');
 
       const funk = new Function('console', result);
       assume(funk.bind(funk, console)).does.not.throw();
@@ -107,17 +96,13 @@ describe('Payper Server', function () {
         return '';
       });
 
-      const result = await payper.concat([
-        { name: 'foo', version: '1.2.9', bundle: 'foo@1.2.9' }
-      ]);
+      const result = await payper.concat('/payper/foo@1.2.9');
 
       assume(result).is.a('string');
       assume(result).includes('this is the actual bundle content that we returned');
       assume(result).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":true}) */');
 
-      const missing = await payper.concat([
-        { name: 'foo', version: '2.2.9', bundle: 'foo@2.2.9' }
-      ]);
+      const missing = await payper.concat('/payper/foo@2.2.9');
 
       assume(missing).is.a('string');
       assume(missing).includes('/*! Payper meta({"name":"foo","version":"2.2.9","cache":false}) */');
@@ -130,10 +115,7 @@ describe('Payper Server', function () {
         return 'this is the actual bundle content that we returned';
       });
 
-      const result = await payper.concat([
-        { name: 'foo', version: '1.2.9', bundle: 'foo@1.2.9' },
-        { name: 'bar', version: '2.2.9', bundle: 'bar@2.2.9' }  // missing
-      ]);
+      const result = await payper.concat('/payper/foo@1.2.9/bar@2.2.9')
 
       assume(result).is.a('string');
       assume(result).includes('this is the actual bundle content that we returned');
@@ -148,9 +130,7 @@ describe('Payper Server', function () {
         throw new Error('Simulating a failed handler');
       });
 
-      const result = await payper.concat([
-        { name: 'foo', version: '1.2.9', bundle: 'foo@1.2.9' }
-      ]);
+      const result = await payper.concat('/payper/foo@1.2.9');
 
       assume(result).is.a('string');
       assume(result).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":false}) */');
