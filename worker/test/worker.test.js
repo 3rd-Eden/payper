@@ -84,7 +84,7 @@ describe('Payper Service Worker', function () {
 
     if (typeof console !== 'undefined' && console.error && console.group) {
       [
-        ['group', '404: Could not find the requested bundle '+ "foo@bar"],
+        ['group', '404: Could not find the requested bundle '+ "foo@0.0.0"],
         ['error', 'The following issues cause'],
         ['error', '1. (client-side) You misspelled the name of the bundle'],
         ['error', '2. (server-side) The bundle is not registered with the server'],
@@ -96,11 +96,11 @@ describe('Payper Service Worker', function () {
       });
     }
 
-/*! Payper meta({"name":"foo","version":"bar","cache":false}) */
+/*! Payper meta({"name":"foo","version":"0.0.0","cache":false}) */
 
     if (typeof console !== 'undefined' && console.error && console.group) {
       [
-        ['group', '404: Could not find the requested bundle '+ "bar@1.2.3"],
+        ['group', '404: Could not find the requested bundle '+ "bar@0.0.0"],
         ['error', 'The following issues cause'],
         ['error', '1. (client-side) You misspelled the name of the bundle'],
         ['error', '2. (server-side) The bundle is not registered with the server'],
@@ -112,7 +112,7 @@ describe('Payper Service Worker', function () {
       });
     }
 
-/*! Payper meta({"name":"bar","version":"1.2.3","cache":false}) */
+/*! Payper meta({"name":"bar","version":"0.0.0","cache":false}) */
       `;
 
       const chunks = payper.parse(contents);
@@ -123,8 +123,8 @@ describe('Payper Service Worker', function () {
       const chunk = chunks[0];
 
       assume(chunk.name).equals('foo');
-      assume(chunk.version).equals('bar');
-      assume(chunk.bundle).equals('foo@bar');
+      assume(chunk.version).equals('0.0.0');
+      assume(chunk.bundle).equals('foo@0.0.0');
       assume(chunk.cache).is.false();
 
       const response = chunk.response;
@@ -135,14 +135,14 @@ describe('Payper Service Worker', function () {
       const blob = response.blob;
 
       assume(blob.options.type).equals('text/javascript');
-      assume(blob.data[0]).includes('/*! Payper meta({"name":"foo","version":"bar","cache":false}) */');
-      assume(blob.data[0]).includes(`['group', '404: Could not find the requested bundle '+ "foo@bar"]`);
+      assume(blob.data[0]).includes('/*! Payper meta({"name":"foo","version":"0.0.0","cache":false}) */');
+      assume(blob.data[0]).includes(`['group', '404: Could not find the requested bundle '+ "foo@0.0.0"]`);
 
-      const chunk2 = chunks[0];
+      const chunk2 = chunks[1];
 
-      assume(chunk2.name).equals('foo');
-      assume(chunk2.version).equals('bar');
-      assume(chunk2.bundle).equals('foo@bar');
+      assume(chunk2.name).equals('bar');
+      assume(chunk2.version).equals('0.0.0');
+      assume(chunk2.bundle).equals('bar@0.0.0');
       assume(chunk2.cache).is.false();
 
       const response2 = chunk2.response;
@@ -153,8 +153,8 @@ describe('Payper Service Worker', function () {
       const blob2 = response2.blob;
 
       assume(blob2.options.type).equals('text/javascript');
-      assume(blob2.data[0]).includes('/*! Payper meta({"name":"foo","version":"bar","cache":false}) */');
-      assume(blob2.data[0]).includes(`['group', '404: Could not find the requested bundle '+ "foo@bar"]`);
+      assume(blob2.data[0]).includes('/*! Payper meta({"name":"bar","version":"0.0.0","cache":false}) */');
+      assume(blob2.data[0]).includes(`['group', '404: Could not find the requested bundle '+ "bar@0.0.0"]`);
     });
   })
 });

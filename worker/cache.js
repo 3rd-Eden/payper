@@ -131,11 +131,13 @@ class CacheStorage {
   async fill(bundles) {
     const cache = await caches.open(this.name);
 
-    await Promise.all(bundles.map(function introduce({ bundle, response }) {
-      const url = this.format(bundle);
+    await Promise.all(bundles.map((chunk) => {
+      if (!chunk.cache) return;
 
-      response.headers.set('payper-hit', Date.now());
-      return cache.put(response);
+      const url = this.format(chunk.bundle);
+
+      chunk.response.headers.set('payper-hit', Date.now());
+      return cache.put(url, chunk.response);
     }));
   }
 

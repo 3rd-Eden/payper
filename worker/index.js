@@ -165,17 +165,23 @@ class Payper {
    */
   parse(contents) {
     const chunks = [];
-    const comment = '/*! Payper meta(';
+    const comment = /\/\*! Payper meta\(["{}:,._\-a-z0-9]+\) \*\//i
 
-    let start = contents.indexOf(comment);
+    //
+    // This indicates where the beginning of the bundle is. And increases once
+    // our bundle seperator has been detected so a new bundle could be formed.
+    //
+    let start = 0;
+    const lines = contents.split('\n');
 
-    while (!!~start) {
-      const end = contents.indexOf('\n', start);
-      const meta = contents.slice(start, end);
-      const blob = new Blob([contents.slice(0, end)], { type: 'text/javascript'});
+    for (let i = 0; i < lines.length; i++) {
+      if (!comment.test(lines[i])) continue;
+
+      const end = i + 1;
+      const data = lines.slice(start, end).join('\n');
+      const metadata = /meta\(([^)]+?)\)/.exec(lines[i])[1];
+      const blob = new Blob([data], { type: 'text/javascript'});
       const response = new Response(blob, { status: 200, statusText: 'OK' });
-
-      const metadata = /meta\(([^)]+?)\)/.exec(meta)[1];
       const { name, version, cache } = JSON.parse(metadata);
       const bundle = `${name}@${version}`;
 
@@ -184,13 +190,7 @@ class Payper {
       // have enough information to construct a single API response.
       //
       chunks.push({ name, version, bundle, response, cache: !!cache });
-
-      //
-      // Remove the discovered bundle from the contents and search for the next
-      // index of our meta comment.
-      //
-      contents = contents.slice(end + 1);
-      start = contents.indexOf(comment);
+      start = end;
     }
 
     return chunks;
