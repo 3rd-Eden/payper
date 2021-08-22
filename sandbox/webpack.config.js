@@ -2,7 +2,7 @@ const { version } = require('./package.json');
 const path = require('path');
 
 module.exports = {
-  mode: 'production',
+  mode: 'development',
   entry: {
     'sw': './src/worker.js',
   },
