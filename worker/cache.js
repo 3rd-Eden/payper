@@ -21,7 +21,7 @@ const matchOpts = {
  * @public
  */
 class CacheStorage {
-  constructor(version) {
+  constructor(version = '0.0.0') {
     this.name = `payper@${version}`;
     this.version = version;
     this.format = format;
@@ -71,18 +71,24 @@ class CacheStorage {
    * Gather all the requested cached items.
    *
    * @param {Array} requested Array with name/version objects.
-   * @returns {Array} All the responses.
+   * @returns {Object} All the responses.
    * @public
    */
   async gather(requested) {
     const cache = await caches.open(this.name);
 
-    const bundles = await Promise.all(requested.map((data) => {
-      return cache.match(this.format(data.bundle), matchOpts);
+    const bundles = await Promise.all(requested.map(async (data) => {
+      const response = cache.match(this.format(data.bundle), matchOpts);
+
+      return { ...data, response }
     }));
 
     this.hit(requested);
-    return bundles;
+
+    return bundles.reduce(function toObject(result, data) {
+      result[data.bundle] = data;
+      return result;
+    }, {});
   }
 
   /**
@@ -125,16 +131,17 @@ class CacheStorage {
    * Add the newly requested bundles to the cache so service worker can start
    * assembling responses from the cache.
    *
-   * @param {Array} bundles Array of name/version/bundle/response objects to store.
+   * @param {Object} bundles Object containing
    * @public
    */
   async fill(bundles) {
     const cache = await caches.open(this.name);
 
-    await Promise.all(bundles.map((chunk) => {
+    await Promise.all(Object.keys(bundles).map((bundle) => {
+      const chunk = bundles[bundle];
       if (!chunk.cache) return;
 
-      const url = this.format(chunk.bundle);
+      const url = this.format(bundle);
 
       chunk.response.headers.set('payper-hit', Date.now());
       return cache.put(url, chunk.response);
@@ -142,7 +149,7 @@ class CacheStorage {
   }
 
   /**
-   * Run throught the existing list of cache items and figure out if we need to
+   * Run through the existing list of cache items and figure out if we need to
    * remove items from the cache. This allows us to be more mindful of our users
    * storage.
    *

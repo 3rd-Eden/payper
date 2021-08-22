@@ -71,12 +71,14 @@ class Payper {
     self.clients.claim();
 
     //
-    // We don't want to use the `event.waitUntil` as our cache cleaning
-    // operations are not vital for the behaviour. If the cache version is
-    // increased, we're using a different clean cache anyways, and the
-    // invalidation pass will only evict old cache items to be "nice" for the
-    // users devices. The bundles that we cache are versioned for cache busting
-    // reasons anyways.
+    // Calling the `event.waitUntil` during the `activation` phase could cause
+    // Service Workers to buffer the `push` and more importantly, the `fetch`
+    // events until passed Promises settles. Old or state cache does not affect
+    // the functioning of our code. If the cache version is increased we're
+    // going to have a clean cache anyways, and the invalidation pass will only
+    // evict old cached items to be "nice" for our users devices. The bundles
+    // that we store have individual versioning assigned to them for
+    // cache-busting reasons.
     //
     await this.cache.clean();
     await this.cache.invalidate(this.settings.ttl);
@@ -89,69 +91,111 @@ class Payper {
    * @private
    */
   fetch(event) {
-    const { request } = event;
+    const url = event.request.url;
 
     event.respondWith((async () => {
-      if (!this.matches(request)) {
-        return await fetch(request);
+      if (!this.matches(event.request)) {
+        return await fetch(event.request);
       }
 
-      const requested = this.extract(request.url);
-      const missing = await this.cache.missing(requested);
-
-      if (missing.length) {
-        try {
-          await this.preload(missing, { url: request.url });
-        } catch (e) {
-          //
-          // We are unable to create an optimized Payper bundle request so we must
-          // assume the worse case scenario and fall back to the full bundle
-          // request. We'll try later again, or not. At least the site will
-          // continue to function.
-          //
-          return await fetch(request);
-        }
-      }
-
-      return this.respond(requested);
+      return await this.concat({ event });
     })());
   }
 
   /**
-   * Request the missing bundles from the API. If we had any cache hits we've
-   * successfully reduced additional bytes over the wire.
+   * Concatenate all requested bundles into a single response.
    *
-   * @param {Array} missing List of missing packages that need to be requested.
-   * @param {String} url The root URL which we request.
-   * @private
+   * @param {FetchEvent} event Fetch event.
+   * @param {String} url Optional URL if it differs from the event.
+   * @returns {Response} Response for the Service Worker, guaranteed.
+   * @public
    */
-  async preload(missing, { url }) {
-    const bundles = missing.map(({ bundle }) => bundle);
-    let response = await fetch(this.format(bundles, url));
+  async concat({ event, url }) {
+    url = url || event.request.url;
+    let response
 
-    if (!response.ok || !(response.status < 400)) {
-      throw new Error('Unable to fetch the optimized payer bundle');
+    //
+    // Our request handler **always** returns something useful. In case of
+    // a successful execution it will return the parsed information and in case
+    // on error that happens during fetching, or parsing it will return the
+    // original response that we made or a new response.
+    //
+    try {
+      response = await this.request(url);
+    } catch (failure) {
+      return failure;
     }
 
-    const contents = await response.text();
-    const chunks = this.parse(contents);
+    //
+    // Update the cache with the freshly requested bundles so we can do a fully
+    // requested
+    //
+    const { fresh, requested } = response;
+    event.waitUntil(this.cache.fill(fresh));
 
-    await this.cache.fill(chunks);
+    //
+    // Now that we have all the freshly requested bundles we want to gather the
+    // previously cached bundles (if they exist) so we can assemble a full
+    // response.
+    //
+    const cached = await this.cache.gather(requested.filter(function filter(data) {
+      return data.bundle in bundles;
+    }));
+
+    //
+    // By using the `requested` array as map we can guarantee that the files are
+    // included in exactly the same order as the original HTTP requested in case
+    // ordering matters for the execution of the bundles.
+    //
+    const contents = new Blob(requested.map(function merge(data) {
+      if (data.name in cached) return cached[data.name].response;
+
+      return bundles[data.name];
+    }), { type: 'text/javascript'});
+
+    return new Response(contents, { status: 200, statusText: 'OK' });
   }
 
   /**
-   * Craft a custom cache response based on the requested bundles. This assumes
-   * that all bundles were previously cached by the system in order to return a
-   * full response.
+   * Requests the missing bundles from the given URL and returns them as parsed
+   * chunks so the be cached later if required.
    *
-   * @returns {Response} The cached bundles.
+   * @param {String} url The original URL that we've intercepted.
+   * @returns {Object} Object containing requested, missing bundles and chunks
    * @private
    */
-  async respond(requested) {
-    const files = await this.cache.gather(requested);
-    const contents = new Blob(files, { type: 'text/javascript'});
+  async request(url) {
+    const requested = this.extract(url)
+    const missing = await this.cache.missing(requested);
 
-    return new Response(contents, { status: 200, statusText: 'OK' });
+    const bundles = missing.map(({ bundle }) => bundle);
+    const payperapi = this.format(bundles, url);
+    const response = await fetch(payperapi);
+
+    let fresh;
+
+    try {
+      //
+      // The clone is an optimization because the calling the `text method
+      // "consumes" the response meaning that it cannot be re-used again.
+      // We want to keep the original fetched response as backup when for some
+      // reason our request building fails.
+      //
+      const contents = await response.clone().text();
+      fresh = this.parse(contents);
+    } catch (e) {
+      //
+      // We are unable to create an optimized Payper bundle request so we must
+      // assume the worse case scenario and fall back to the full bundle
+      // request. We'll try later again, or not. At least the site will
+      // continue to function. As optimization we can check if the requested URL
+      // is the same as our optimized URL because then we can just return the
+      // previous response.
+      if (url === payperapi) throw response;
+      throw await fetch(url);
+    }
+
+    return { requested, fresh };
   }
 
   /**
@@ -169,7 +213,7 @@ class Payper {
 
     //
     // This indicates where the beginning of the bundle is. And increases once
-    // our bundle seperator has been detected so a new bundle could be formed.
+    // our bundle separator has been detected so a new bundle could be formed.
     //
     let start = 0;
     const lines = contents.split('\n');
