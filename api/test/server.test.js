@@ -77,20 +77,21 @@ describe('Payper Server', function () {
       assume(result).includes('https://github.com/3rd-Eden/payper/tree/main/api#missing');
     });
 
-    it.skip('can evaluate the failed bundle console blob', async function () {
+    it('can evaluate the failed bundle console blob', async function () {
       payper.add('foo', async function handler({ version }) {
-        return 'this is the actual bundle content that we returned';
+        throw new Error('this is going to break');
       });
 
       const result = await payper.concat([
         { name: 'foo', version: '1.2.9', bundle: 'foo@1.2.9' }
       ]);
 
+      console.log(result)
       const funk = new Function('console', result);
       assume(funk.bind(funk, console)).does.not.throw();
     });
 
-    it.skip('can evaluate the missing bundle console blob', async function () {
+    it('can evaluate the missing bundle console blob', async function () {
       const result = await payper.concat([
         { name: 'foo', version: '1.2.9', bundle: 'foo@1.2.9' }
       ]);

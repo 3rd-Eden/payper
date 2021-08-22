@@ -12,7 +12,7 @@ module.exports = async function missing({ bundle }) {
   const payload = `
     if (typeof console !== 'undefined' && console.error && console.group) {
       [
-        ['graup', '404: Could not find the requested bundle '+ ${JSON.stringify(bundle)}],
+        ['group', '404: Could not find the requested bundle '+ ${JSON.stringify(bundle)}],
         ['error', 'The following issues cause'],
         ['error', '1. (client-side) You misspelled the name of the bundle'],
         ['error', '2. (server-side) The bundle is not registered with the server'],
