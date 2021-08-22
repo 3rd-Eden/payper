@@ -19,6 +19,7 @@ module.exports = async function homepage() {
 <body>
   <p>Hello world! This is HTML5 Boilerplate.</p>
   <script src="/payper/foo@0.0.0/bar@0.0.0/sw@0.0.0"></script>
+  <script src="/payper/sw@0.0.0"></script>
 </body>
 
 </html>

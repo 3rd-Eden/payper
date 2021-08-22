@@ -62,8 +62,7 @@ class Payper {
    * @private
    */
   async respond(req, res) {
-    const requested = this.extract(req.url);
-    const contents = await this.concat(requested);
+    const contents = await this.concat(req.url);
 
     //
     // @TODO: Optimize the response, check if response streaming makes more
@@ -89,12 +88,13 @@ class Payper {
    * Concatenate the requested bundles into a singular request that can be returned
    * to our users.
    *
-   * @param {Array} requested Array with name/version bundle information.
+   * @param {Array} url The `/payper/*` URL that we need to concatenate
    * @returns {Array}
    * @public
    */
-  async concat(requested) {
+  async concat(url) {
     const asterisk = this.bundles.get('*');
+    const requested = this.extract(url);
 
     /**
      * Gather the source of the requested bundle.
