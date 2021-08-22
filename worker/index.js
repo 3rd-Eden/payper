@@ -1,5 +1,6 @@
 const format = require('../utils/format.js');
 const matches = require('../utils/matches');
+const extract = require('../utils/extract');
 const CacheStorage = require('./cache.js');
 
 /**
@@ -24,8 +25,10 @@ class Payper {
   constructor({ version, ttl } = {}) {
     this.cache = new CacheStorage(version);
     this.settings = { ttl };
+
     this.format = format;
     this.matches = matches;
+    this.extract = extract;
   }
 
   /**
@@ -88,11 +91,12 @@ class Payper {
   fetch(event) {
     const { request } = event;
 
-    event.respondWith(async () => {
+    event.respondWith((async () => {
+      if (!this.matches(request)) {
+        return await fetch(request);
+      }
+
       const requested = this.extract(request.url);
-
-      if (!this.matches(request) || !requested.length) return fetch(request);
-
       const missing = await this.cache.missing(requested);
 
       if (missing.length) {
@@ -105,12 +109,12 @@ class Payper {
           // request. We'll try later again, or not. At least the site will
           // continue to function.
           //
-          return fetch(request);
+          return await fetch(request);
         }
       }
 
       return this.respond(requested);
-    });
+    })());
   }
 
   /**
@@ -169,17 +173,17 @@ class Payper {
       const end = contents.indexOf('\n', start);
       const meta = contents.slice(start, end);
       const blob = new Blob([contents.slice(0, end)], { type: 'text/javascript'});
-      const response = new Response(blob, { status: 200, statusText: 'OK' })
+      const response = new Response(blob, { status: 200, statusText: 'OK' });
 
       const metadata = /meta\(([^)]+?)\)/.exec(meta)[1];
-      const { name, version, cache } = JSON.parse(meta);
+      const { name, version, cache } = JSON.parse(metadata);
       const bundle = `${name}@${version}`;
 
       //
       // Include the meta data, bundle name, and data as chunk information so we
       // have enough information to construct a single API response.
       //
-      if (cache) chunks.push({ name, version, bundle, response });
+      chunks.push({ name, version, bundle, response, cache: !!cache });
 
       //
       // Remove the discovered bundle from the contents and search for the next

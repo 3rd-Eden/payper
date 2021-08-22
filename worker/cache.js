@@ -57,11 +57,10 @@ class CacheStorage {
    * @public
    */
   async missing(requested) {
-    const url = `/${bundle}`
     const cache = await caches.open(this.name);
 
     const bundles = await Promise.all(requested.map(async (data) => {
-      const has = await cache.matches(this.format(data.bundle));
+      const has = await cache.match(this.format(data.bundle));
       return has ? null : data;
     }));
 
