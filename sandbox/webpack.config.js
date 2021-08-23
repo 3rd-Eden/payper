@@ -2,9 +2,10 @@ const { version } = require('./package.json');
 const path = require('path');
 
 module.exports = {
-  mode: 'development',
+  mode: 'production',
   entry: {
     'sw': './src/worker.js',
+    'workbox': './src/workbox.js'
   },
   output: {
     path: path.resolve(__dirname, 'bundles'),
