@@ -7,12 +7,12 @@ const devcert = require('devcert');
  * @type {Number}
  * @private
  */
-let port = 3210;
+let portnumber = 3210;
 let ssl;
 
 module.exports = async function bootstrap(fn) {
-  ssl = ssl || await devcert.certificateFor('payper.test');
+  const port = portnumber++;
 
+  ssl = ssl || await devcert.certificateFor('payper.test');
   await fn({ ssl, port, url: `https://payper.test:${port}/` });
-  port++;
 };
