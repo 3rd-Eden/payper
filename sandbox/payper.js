@@ -1,4 +1,4 @@
-const Payper = require('../api/index.js');
+const Payper = require('../server/index.js');
 const fs = require('fs/promises');
 const path = require('path');
 const payper = new Payper();
