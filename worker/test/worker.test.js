@@ -5,8 +5,7 @@ const assume = require('assume');
 
 describe('Payper Service Worker', function () {
   let payper;
-
-  global.cache = new CacheStorage();
+  global.caches = global.caches || new CacheStorage();
 
   global.Blob = class Blob {
     constructor(data, options) {
@@ -189,5 +188,5 @@ describe('Payper Service Worker', function () {
       assume(blob2.data[0]).includes('/*! Payper meta({"name":"bar","version":"0.0.0","cache":false}) */');
       assume(blob2.data[0]).includes(`['group', '404: Could not find the requested bundle '+ "bar@0.0.0"]`);
     });
-  })
+  });
 });
