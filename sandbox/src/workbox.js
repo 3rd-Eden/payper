@@ -4,7 +4,7 @@ import Payper from '../../worker';
 const payper = new Payper();
 
 registerRoute(
-  function matcher({ url, request, event }) {
+  function matcher({ request }) {
     return payper.matches(request);
   },
   async function handler({ event }) {

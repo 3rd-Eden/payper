@@ -1,4 +1,4 @@
-module.exports = async function homepage() {
+module.exports = async function homepage({ worker='sw-0.0.0' } = {}) {
   return `
 <!doctype html>
 <html class="no-js" lang="en-US">
@@ -10,7 +10,7 @@ module.exports = async function homepage() {
   <meta name="theme-color" content="#fafafa">
   <script>
     if ('serviceWorker' in navigator)
-    navigator.serviceWorker.register('/sw-0.0.0.js', {
+    navigator.serviceWorker.register('/${worker}.js', {
       scope: '/'
     });
   </script>

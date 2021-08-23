@@ -32,7 +32,7 @@ app.get('/payper/*', async function intercept(req, res) {
 // Finally, render our index page
 //
 app.get('/', async function index(req, res) {
-  const response = await html();
+  const response = await html({ worker: 'workbox-0.0.0' });
 
   res.set('Content-Type', 'text/html');
   res.send(response);
