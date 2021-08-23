@@ -228,7 +228,7 @@ class PayperWorker {
    */
   parse(contents) {
     const chunks = {};
-    const comment = /\/\*! Payper meta\(["{}:,._\-a-z0-9]+\) \*\//i
+    const comment = /\/\*! Payper meta\(["{}:,\._\-a-z0-9]+\) \*\//i
 
     //
     // This indicates where the beginning of the bundle is. And increases once
