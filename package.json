@@ -9,7 +9,7 @@
     "./edge": "./edge/index.js"
   },
   "scripts": {
-    "test": "mocha **/*.test.js"
+    "test": "mocha '{,+(worker|api)/**/}*.test.js'"
   },
   "repository": {
     "type": "git",
