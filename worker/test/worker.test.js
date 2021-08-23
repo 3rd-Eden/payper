@@ -57,10 +57,10 @@ describe('Payper Service Worker', function () {
 
       const chunks = payper.parse(contents);
 
-      assume(chunks).is.a('array');
+      assume(chunks).is.a('object');
       assume(chunks).is.length(1);
 
-      const chunk = chunks[0];
+      const chunk = chunks['foo@bar'];
 
       assume(chunk.name).equals('foo');
       assume(chunk.version).equals('bar');
@@ -117,10 +117,10 @@ describe('Payper Service Worker', function () {
 
       const chunks = payper.parse(contents);
 
-      assume(chunks).is.a('array');
+      assume(chunks).is.a('object');
       assume(chunks).is.length(2);
 
-      const chunk = chunks[0];
+      const chunk = chunks['foo@0.0.0'];
 
       assume(chunk.name).equals('foo');
       assume(chunk.version).equals('0.0.0');
@@ -138,7 +138,7 @@ describe('Payper Service Worker', function () {
       assume(blob.data[0]).includes('/*! Payper meta({"name":"foo","version":"0.0.0","cache":false}) */');
       assume(blob.data[0]).includes(`['group', '404: Could not find the requested bundle '+ "foo@0.0.0"]`);
 
-      const chunk2 = chunks[1];
+      const chunk2 = chunks['bar@0.0.0'];
 
       assume(chunk2.name).equals('bar');
       assume(chunk2.version).equals('0.0.0');
