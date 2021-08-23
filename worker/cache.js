@@ -42,7 +42,7 @@ class CacheStorage {
       const key = keys[0];
 
       if (key.startsWith('payper@') && key.split('@')[0] !== current) {
-        await caches.delete(key)
+        await caches.delete(key);
       }
     }
   }

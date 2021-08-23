@@ -91,15 +91,8 @@ class Payper {
    * @private
    */
   fetch(event) {
-    const url = event.request.url;
-
-    event.respondWith((async () => {
-      if (!this.matches(event.request)) {
-        return await fetch(event.request);
-      }
-
-      return await this.concat(event);
-    })());
+    if (!this.matches(event.request)) return;
+    event.respondWith(this.concat(event));
   }
 
   /**

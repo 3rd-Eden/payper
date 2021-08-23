@@ -1,9 +1,12 @@
 const { describe, it, beforeEach } = require('mocha');
+const CacheStorage = require('./cachestorage');
 const Payper = require('../index.js');
 const assume = require('assume');
 
 describe('Payper Service Worker', function () {
   let payper;
+
+  global.cache = new CacheStorage();
 
   global.Blob = class Blob {
     constructor(data, options) {
@@ -34,16 +37,46 @@ describe('Payper Service Worker', function () {
     it('calls `skipWaiting` on `install`', function (next) {
       global.self.skipWaiting = next;
 
-      payper.install();
+      payper.install({
+        waitUntil: function () {
+          throw new Error('I should never wait during install');
+        }
+      });
     });
 
     it('call `clients.claim()` on `activate`', function (next) {
       global.self.clients = { claim: next };
 
-      payper.activate();
+      payper.activate({
+        waitUntil: function () {
+          throw new Error('I should never wait during activate');
+        }
+      });
     });
 
-    it('calls the `responseWith` method on `fetch`');
+    it('calls the `responseWith` method on `fetch` for matching URLs', function (next) {
+      payper.fetch({
+        request: {
+          url: '/payper/foo@bar',
+          method: 'GET'
+        },
+        respondWith: function () {
+          next();
+        }
+      });
+    });
+
+    it('does not call `responseWith` on `fetch` when the URL does not match', function () {
+      payper.fetch({
+        request: {
+          url: '/a-different-url',
+          method: 'GET'
+        },
+        respondWith: function () {
+          throw new Error('I should never have been called');
+        }
+      });
+    });
   });
 
   describe('Response parsing', function () {
