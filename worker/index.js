@@ -21,14 +21,22 @@ const CacheStorage = require('./cache.js');
  * @class PayperWorker
  * @public
  */
-class Payper {
-  constructor({ version, ttl } = {}) {
+class PayperWorker {
+  /**
+   * Creates a new Payper instance.
+   *
+   * @param {String} version The version of the cache we want to use.
+   * @param {String} path The path the `payper/server` is working on.
+   * @param {Number} ttl Milliseconds indicating how long stale items are kept
+   * @public
+   */
+  constructor({ version='0.0.0', path='payper', ttl } = {}) {
     this.cache = new CacheStorage(version);
-    this.settings = { ttl };
+    this.settings = { ttl, path };
 
-    this.format = format;
-    this.matches = matches;
-    this.extract = extract;
+    this.format = format.bind(path);
+    this.matches = matches.bind(path);
+    this.extract = extract.bind(path);
   }
 
   /**
@@ -62,7 +70,7 @@ class Payper {
   }
 
   /**
-   * The ServiceWorker has become active, we want to purge the cache to see if
+   * The Service Worker has become active, we want to purge the cache to see if
    * anything needs invalidation.
    *
    * @private
@@ -251,4 +259,4 @@ class Payper {
 //
 // Expose the worker interface so it can be consumed by test suites.
 //
-module.exports = Payper;
+module.exports = PayperWorker;

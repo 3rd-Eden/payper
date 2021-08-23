@@ -21,10 +21,17 @@ const matchOpts = {
  * @public
  */
 class CacheStorage {
-  constructor(version = '0.0.0') {
+  /**
+   * Creates a new CacheStorage instance.
+   *
+    * @param {String} version The version of the cache we want to use.
+    * @param {String} path The path the `payper/server` is working on.
+    * @public
+   */
+  constructor({ version='0.0.0', path='payper' } = {}) {
     this.name = `payper@${version}`;
+    this.format = format.bind(path);
     this.version = version;
-    this.format = format;
   }
 
   /**

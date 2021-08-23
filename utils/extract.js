@@ -12,11 +12,11 @@
  * decided upon. It's merely there for identification purposes.
  *
  * @param {String} url The request URL that we've intercepted.
- * @returns {Array}
+ * @returns {Array} Parsed requested bundleds.
  * @public
  */
 module.exports = function extract(url) {
-  return (url.split('/payper/').pop() || '').split('/')
+  return (url.split(`/${this}/`).pop() || '').split('/')
   .map(function parse(bundle) {
     //
     // We need to cautious with version parsing here. If for some case we have

@@ -5,17 +5,25 @@ const failure = require('./failure.js');
 
 /**
  *
- * @class Payper
+ * @class PayperServer
  * @public
  */
-class Payper {
-  constructor() {
+class PayperServer {
+  /**
+   * Creates a new Payper instance.
+   *
+   * @param {String} version The version of the cache we want to use.
+   * @param {String} path The path the `payper/server` is working on.
+   * @param {Number} ttl Milliseconds indicating how long stale items are kept
+   * @public
+   */
+  constructor({ path='payper' } = {}) {
     this.bundles = new Map();
 
-    this.extract = extract;
     this.missing = missing;
     this.failure = failure;
-    this.matches = matches;
+    this.extract = extract.bind(path);
+    this.matches = matches.bind(path);
   }
 
   /**
@@ -177,4 +185,4 @@ class Payper {
 //
 // Expose the handler.
 //
-module.exports = Payper;
+module.exports = PayperServer;

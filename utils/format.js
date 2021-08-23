@@ -18,7 +18,7 @@ module.exports = function format(path, origin = self.registration.scope) {
   //
   const root = new URL(origin);
 
-  root.pathname = `/payper/${[].concat(path).join('/')}`;
+  root.pathname = `/${this}/${[].concat(path).join('/')}`;
   root.search = '';
 
   return root.href;
