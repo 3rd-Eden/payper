@@ -30,7 +30,7 @@ class PayperWorker {
    * @param {Number} ttl Milliseconds indicating how long stale items are kept
    * @public
    */
-  constructor({ version='0.0.0', path='payper', ttl } = {}) {
+  constructor({ version='0.0.0', path='payper', ttl=2.628e+9 } = {}) {
     this.cache = new CacheStorage(version);
     this.settings = { ttl, path };
 
@@ -133,9 +133,8 @@ class PayperWorker {
     // previously cached bundles (if they exist) so we can assemble a full
     // response.
     //
-    const cached = await this.cache.gather(requested.filter(function filter(data) {
-      return !(data.bundle in fresh);
-    }));
+    const old = requested.filter((data) => !(data.bundle in fresh));
+    const cached = await this.cache.gather(old);
 
     //
     // By using the `requested` array as map we can guarantee that the files are
@@ -157,9 +156,14 @@ class PayperWorker {
 
     //
     // Update the cache with the freshly requested bundles so we can do a fully
-    // requested
+    // requested and tag all old request for a cache hit.
     //
-    event.waitUntil(this.cache.fill(fresh));
+    event.waitUntil(
+      Promise.all([
+        this.cache.fill(fresh),
+        this.cache.hit(old)
+      ])
+    );
 
     const contents = new Blob(responses, { type: 'text/javascript'});
     return new Response(contents, { status: 200, statusText: 'OK' });

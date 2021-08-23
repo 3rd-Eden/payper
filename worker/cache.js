@@ -29,7 +29,7 @@ class CacheStorage {
     * @public
    */
   constructor({ version='0.0.0', path='payper' } = {}) {
-    this.name = `payper@${version}`;
+    this.name = `${path}@${version}`;
     this.format = format.bind(path);
     this.version = version;
   }
@@ -90,8 +90,6 @@ class CacheStorage {
       if (!response) return;
       return { ...data, response };
     }));
-
-    this.hit(requested);
 
     return bundles.filter(Boolean).reduce(function toObject(result, data) {
       result[data.bundle] = data;
