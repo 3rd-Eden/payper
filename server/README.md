@@ -1,16 +1,15 @@
-# Payper API
+# Payper Server
 
 Run Payper on your own server or use it as development tool and use our edge
 functionality in production, you decide what is best for your use-case.
 
 ## Usage
 
-The API server is bundled with `payper` module that you [previously
-installed][install]. The API is available under the `payper/api` import route as
-illustrated below.
+The server is bundled with `payper` module that you [previously installed][install]. 
+The API is available under the `payper/api` import route as illustrated below.
 
 ```js
-const Payper = require('payper/api');
+const Payper = require('payper/server');
 ```
 
 Once you've imported the API in your server-side code you can create a new

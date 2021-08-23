@@ -5,11 +5,11 @@
   "main": "index.js",
   "exports": {
     "./worker": "./worker/index.js",
-    "./api": "./api/index.js",
+    "./server": "./server/index.js",
     "./edge": "./edge/index.js"
   },
   "scripts": {
-    "test": "mocha '{,+(worker|api)/**/}*.test.js'"
+    "test": "mocha '{,+(worker|server)/**/}*.test.js'"
   },
   "repository": {
     "type": "git",

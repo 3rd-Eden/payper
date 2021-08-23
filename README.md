@@ -28,7 +28,7 @@ npm install --save payper
 
 This single module provides access to:
 
-- [Payper API](./api/README.md) Server-side API that concatenates multiple
+- [Payper Server](./server/README.md) Server-side API that concatenates multiple
   bundles together into a single request.
 - [Service Worker](./worker/README.md) Service Worker which implements our
   progressive enhanced bundle splitting and caching strategy.
