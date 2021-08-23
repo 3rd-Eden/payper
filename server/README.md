@@ -72,6 +72,7 @@ To make this work we'll be using the following API methods:
 
 - [matches](#matches)
 - [concat](#concat)
+- [intercept](#intercept)
 
 #### matches
 
@@ -104,6 +105,27 @@ set to `text/javascript` in order to correctly executed in the browser.
 
 ```js
 const response = await payper.concat(request);
+```
+
+#### Intercept
+
+This is a combination of both methods, but writes the response. This is only
+meant for **development** purposes as this function is **not optimized for
+production**. It simply writes the `response` from the [concat](#concat) method
+and sets a `200` statusCode, but it's a great way to just get started. The
+method accepts the incomming HTTP rquest and out outgoing HTTP response as
+arguments. It returns a `boolean` as indicator if the request is intercepted.
+
+```js
+http.createServer(function (req, res) {
+  if (payper.intercept(req)) return;
+
+  res.writeHead(404, {
+    'Content-Type': 'text/plain',
+  });
+
+  res.end('Not Found');
+});
 ```
 
 ### Framework integration
