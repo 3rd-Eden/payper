@@ -80,8 +80,60 @@ Compile this to the `sw.js` file and you're ready go.
 
 Integrating with an existing Service Worker requires a few more steps than just
 simply calling the `Payper#register` method as this assigns the various
-eventlisteners to the Service Worker so it might make more sense to just use
+listeners to the Service Worker so it might make more sense to just use
 your pre-existing listeners and work together with your code.
 
+To make this work we'll be using the following API methods:
+
+- [matches](#matches)
+- [concat](#concat)
+
+#### matches
+
+The matches method checks if the given request needs to be handled by the Payper
+system. It accepts an `Request` instance or an object with a `url` and `method`
+as properties. It returns a boolean indicating if Payper should handle the
+request or not
+
+```js
+payper.matches(request); // returns true or false.
+```
+
+#### concat
+
+It accepts the `event` (FetchEvent) as first argument. The `concat` method is an
+**asynchronous** function and should be called with `await` or processed as
+Promise.
+
+The function returns a `Response` with the contents of the request. The contents
+can be a fresh HTTP response in the case an fully uncached request, a fully
+cached result, or a combination of both. 
+
+```js
+const response = await payper.concat(event);
+```
+
+#### Workbox
+
+Workbox is set of libraries that helps writing Service Workers. The following
+example below illustrates how the Payper worker integrates with Workbox's
+routing system to intercept specific request.
+
+```js
+import { registerRoute } from 'workbox-routing';
+import Payper from 'payper/worker';
+
+const payper = new Payper();
+
+registerRoute(
+  function matcher({ url, request, event }) {
+    return payper.matches(request);
+  },
+  async function handler({ event }) {
+    return await payper.concat(event);
+  }
+);
+```
+[workbox]: https://developers.google.com/web/tools/workbox
 [primer]: https://developers.google.com/web/fundamentals/primers/service-workers
 [install]: https://github.com/3rd-Eden/payper#installation

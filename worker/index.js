@@ -98,7 +98,7 @@ class Payper {
         return await fetch(event.request);
       }
 
-      return await this.concat({ event });
+      return await this.concat(event);
     })());
   }
 
@@ -106,12 +106,11 @@ class Payper {
    * Concatenate all requested bundles into a single response.
    *
    * @param {FetchEvent} event Fetch event.
-   * @param {String} url Optional URL if it differs from the event.
    * @returns {Response} Response for the Service Worker, guaranteed.
    * @public
    */
-  async concat({ event, url }) {
-    url = url || event.request.url;
+  async concat(event) {
+    const url = event.request.url;
     let response
 
     //

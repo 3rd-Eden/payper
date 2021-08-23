@@ -69,19 +69,31 @@ payper.add(async function catchall({ name, version }) {
 
 ### Intercepting the Payper HTTP requests
 
+To make this work we'll be using the following API methods:
+
+- [matches](#matches)
+- [concat](#concat)
+
 #### matches
 
 Checks if the request needs to be handled by the Payper system. It accepts an
-object with a `url` and `method` as properties. For example the incoming HTTP
-`Request` instance can be used here:
+object with a `url` and `method` as properties. It returns a boolean indicating
+if Payper should handle the request.
+
+The following is an example where we use the incoming HTTP request of Node.js
+to see if the request needs to be handled:
 
 ```js
-payper.matches(req); // returns true or false
+http.createServer(function (req, res) {
+  if (payper.matches(req)) {
+    // do stuff
+  }
+})
 ```
 
 #### concat
 
-It accepts the `/payper/{more paths here}` as first argument. The `concat`
+It accepts the `/payper/{more paths here}` URL as first argument. The `concat`
 method is an **asynchronous** function and should be called with `await` or
 processed as Promise.
 
@@ -96,6 +108,10 @@ const response = await payper.concat(request);
 ```
 
 ### Framework integration
+
+If you want to see a working implementation of these framework integrations
+checkout our [sandbox] application which demonstrates the of Payper into any
+application.
 
 #### Express
 
@@ -164,5 +180,5 @@ fastify.get('/payper/*', async intercept(request, reply) {
 })();
 ```
 
-[extract]: https://github.com/3rd-Eden/payper/tree/main/utils#extract
 [install]: https://github.com/3rd-Eden/payper#installation
+[sandbox]: https://github.com/3rd-Eden/payper/tree/main/sandbox
