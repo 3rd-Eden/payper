@@ -18,8 +18,8 @@ module.exports = async function homepage({ worker='sw-0.0.0' } = {}) {
 
 <body>
   <p>Hello world! This is HTML5 Boilerplate.</p>
-  <script src="/payper/foo@0.0.0/bar@0.0.0/sw@0.0.0"></script>
-  <script src="/payper/sw@0.0.0"></script>
+  <script src="/payper/eventemitter3@4.0.7/url-parse@1.5.3/react@17.0.2/react-dom@17.0.2"></script>
+  <script src="/payper/unknown@0.0.0"></script>
 </body>
 
 </html>
