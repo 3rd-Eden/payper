@@ -8,7 +8,7 @@ This is an internal package and is not meant for public consumption. The
 packages that do consume these API's often expose these methods on their
 instances as well. E.g. `extract -> Payper#extract`.
 
-The following utilities are available
+The following utilities are available:
 
 ### extract
 
@@ -30,7 +30,7 @@ The function accepts a single argument, `url`, which is the URL path that we
 want to extract our data from:
 
 ```js
-extract('/payper/foo@bar/vendor@1.2.3');
+payper.extract('/payper/foo@bar/vendor@1.2.3');
 
 // [
 //   { name: 'foo', version: 'bar', bundle: 'foo@bar' },
@@ -50,8 +50,8 @@ When no origin is given it will default to the scope of the Service Worker so
 only in that environment is the second argument expected to be optional.
 
 ```js
-format('foo@bar');                          // http://example.com/payper/foo@bar
-format('foo@bar', 'http://foo.com/hello');  // http://foo.com/payper/foo@bar
+payper.format('foo@bar');                          // http://example.com/payper/foo@bar
+payper.format('foo@bar', 'http://foo.com/hello');  // http://foo.com/payper/foo@bar
 ```
 
 ### matches
@@ -63,7 +63,7 @@ It accepts a `Request` object first argument that has the `url` and `method`
 props set.
 
 ```js
-matches({ url: '/payper/foo@bar', method: 'GET' });     // true
-matches({ url: '/payper/foo@bar', method: 'POST' });    // false
-matches({ url: '/something-else', method: 'GET' });     // false
+payper.matches({ url: '/payper/foo@bar', method: 'GET' });     // true
+payper.matches({ url: '/payper/foo@bar', method: 'POST' });    // false
+payper.matches({ url: '/something-else', method: 'GET' });     // false
 ```

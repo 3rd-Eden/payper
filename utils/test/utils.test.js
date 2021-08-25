@@ -16,11 +16,19 @@ describe('Payper Utils', function () {
       { url: '/banana', method: 'GET', expected: false }
     ].forEach(function generate({ url, method, expected }) {
       it(`url(${url}), method(${method}) is a ${expected ? 'valid' : 'invalid'} url`, function () {
-        const result = matches({ url, method });
+        const result = matches.call('payper', { url, method });
 
         assume(result).equals(expected);
       });
     });
+
+    it('uses the `this` value to change the path name it matches', function () {
+      it('matches /banana', function () {
+        const result = matches.call('banana', { url: '/banana/foo@bar' });
+
+        assume(result).is.true();
+      })
+    })
   });
 
   describe('format', function () {
@@ -29,10 +37,16 @@ describe('Payper Utils', function () {
       { path: ['ban', 'ana'], base: 'http://example.com/nested/url', href: 'http://example.com/payper/ban/ana' }
     ].forEach(function generate({ path, base, href }) {
       it(`formats path(${JSON.stringify(path)}) as ${href}`, function () {
-        const result = format(path, base);
+        const result = format.call('payper', path, base);
 
         assume(result).equals(href);
       });
+    });
+
+    it('uses the `this` value to configure the path', function () {
+      const result = format.call('banana', 'hello', 'https://foo.com/another/path');
+
+      assume(result).equals('https://foo.com/banana/hello');
     });
   });
 
@@ -51,8 +65,12 @@ describe('Payper Utils', function () {
       ]}
     ].forEach(function generate({ path, result }) {
       it(`extracts name and version from path(${path})`, function () {
-        assume(extract(path)).deep.equals(result);
+        assume(extract.call('payper', path)).deep.equals(result);
       });
+    });
+
+    it('uses the `this` value to configure the path it trigger on', function () {
+      assume(extract.call('banana', '/banana/foo@bar')).deep.equals([{ name: 'foo', version: 'bar', bundle: 'foo@bar' }]);
     });
   });
 });
