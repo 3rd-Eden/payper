@@ -176,7 +176,8 @@ class PayperServer {
    * @private
    */
   wrap(payload) {
-    return `(function __payper__wrap__() {${payload}
+    return `(function __payper__wrap__() {
+      ${payload}
 
       ;if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(function ready(sw) {

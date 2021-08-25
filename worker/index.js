@@ -55,20 +55,28 @@ class PayperWorker {
   }
 
   /**
-   * Intercept the postMessage from our Payper Server. On the first visit of the
-   * page the Service Worker will not be loaded yet so the requested bundles
-   * will be requested and executed normally. In order to still cache the
-   * contents the response will include a "phone-home" call to the Service
-   * Worker with contents of the bundle so it can be cached later.
+   * Listen to the `postMessage` message event. This allows developers to
+   * communicate with the worker and interact with the exposed API.
    *
-   * @param {Event}
+   * @param {ExtendableMessageEvent} event Service Worker's incoming message.
    * @private
    */
   async message(event) {
-    if (!event.data || typeof event.data !== 'object' || event.data.type !== 'payper:paste') return;
+    if (!event.data || typeof event.data !== 'object') return;
 
-    const fresh = this.parse(event.data.contents);
-    event.waitUntil(this.cache.fill(fresh));
+    switch (event.data.type) {
+      //
+      // On the first visit of the page the Service Worker will not be loaded
+      // yet so the requested bundles will be downloaded and executed normally.
+      // In order to still cache the contents without having to make another
+      // HTTP request the response will include this "postMessage" call to the
+      // Service Worker with contents of the bundle so it can be cached.
+      //
+      case 'payper:paste':
+        const fresh = this.parse(event.data.contents);
+        event.waitUntil(this.cache.fill(fresh));
+      break;
+    }
   }
 
   /**
@@ -184,7 +192,20 @@ class PayperWorker {
     );
 
     const contents = new Blob(responses, { type: 'text/javascript'});
-    return new Response(contents, { status: 200, statusText: 'OK' });
+    return new Response(contents, {
+      statusText: 'OK',
+      status: 200,
+
+      //
+      // Introduce an additional set of headers to provide some information
+      // on how the response was constructed.
+      //
+      headers: {
+        'payper-requested': requested.map(({ bundle }) => bundle).join(','),
+        'payper-fetched': Object.keys(fresh).join(',') || 'none',
+        'payper-cached': Object.keys(cached).join(',') || 'none'
+      }
+    });
   }
 
   /**
@@ -246,7 +267,22 @@ class PayperWorker {
    */
   parse(contents) {
     const chunks = {};
+    const iff = '(function __payper__wrap__() {';
     const comment = /\/\*! Payper meta\(["{}:,\._\-a-z0-9]+\) \*\//i
+
+    //
+    // Our parser assumes that **everything** above the /* Payper meta() */
+    // comment is part of the bundle, so when we wrap our bundle with an IFF
+    // this is seen as part of the first bundle leading to JS errors. So we
+    // to remove this from the contents.
+    //
+    // We don't need to worry about the contents that are included at the
+    // bottom of our IFF as that gets ignored automatically by the parser
+    // as there is no /* Payper meta() */ comment following it.
+    //
+    if (contents.startsWith(iff)) {
+      contents = contents.slice(iff.length);
+    }
 
     //
     // This indicates where the beginning of the bundle is. And increases once

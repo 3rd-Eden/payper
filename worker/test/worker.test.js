@@ -79,6 +79,36 @@ describe('Payper Service Worker', function () {
   });
 
   describe('Response parsing', function () {
+    it('parses removes the wrapping iff if it exists', function () {
+      const contents = `(function __payper__wrap__() {
+        (function () {
+          throw new Error('I should not be executed');
+        })()
+        /*! Payper meta({"name":"foo","version":"bar"}) */
+
+        ;if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(function ready(sw) {
+            sw.active.postMessage({
+              type: 'payper:paste',
+              contents: __payper__wrap__.toString()
+            });
+          });
+        }
+      }());`;
+
+      const chunks = payper.parse(contents);
+
+      assume(chunks).is.a('object');
+      assume(chunks).is.length(1);
+
+      const chunk = chunks['foo@bar'];
+      const response = chunk.response;
+      const blob = response.blob;
+      const data = blob.data[0];
+
+      assume(data).does.not.include('__payper__wrap__');
+    });
+
     it('parses a single bundle response', function () {
       const contents = `
         (function () {
