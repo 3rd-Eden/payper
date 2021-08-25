@@ -49,8 +49,26 @@ class PayperWorker {
     [
       'fetch',        // Intercept the requests.
       'activate',     // Clean our caches.
-      'install'       // Speeds up activation of our Service Worker
+      'install',      // Speeds up activation of our Service Worker.
+      'message',      // Listens to postMessage to cache executed bundles.
     ].forEach(method => self.addEventListener(method, this[method].bind(this)));
+  }
+
+  /**
+   * Intercept the postMessage from our Payper Server. On the first visit of the
+   * page the Service Worker will not be loaded yet so the requested bundles
+   * will be requested and executed normally. In order to still cache the
+   * contents the response will include a "phone-home" call to the Service
+   * Worker with contents of the bundle so it can be cached later.
+   *
+   * @param {Event}
+   * @private
+   */
+  async message(event) {
+    if (!event.data || typeof event.data !== 'object' || event.data.type !== 'payper:paste') return;
+
+    const fresh = this.parse(event.data.contents);
+    event.waitUntil(this.cache.fill(fresh));
   }
 
   /**
