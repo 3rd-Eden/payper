@@ -1,20 +1,20 @@
 # Payper Worker
 
-Payper leverages Service Workers to intercept and progressively enhance our
+Payper leverages ServiceWorker's to intercept and progressively enhance our
 Payper API requests by removing the previously cached bundles from the request
 and forwarding only the bundles to the API that have yet to be cached.
 
-Given that we want install and activate our Service Worker as quickly as
-possible so it can intercept our requests it's advised to call the Service
-Worker installation script as early as possible on your page. And you want to
-delay your bundle request as much as possible so the request can be cached.
+Given that we want install and activate our ServiceWorker as quickly as
+possible so it can intercept our requests it's advised to call the ServiceWorker
+installation script as early as possible on your page. And you want to delay
+your bundle request as much as possible so the request can be cached.
 
-## Registering your first Service Worker
+## Registering your first ServiceWorker
 
-If this is your first time using Service Worker I would highly recommend reading
-the [Service Worker Primer][primer] before continuing so you understand some of
+If this is your first time using ServiceWorker I would highly recommend reading
+the [ServiceWorker Primer][primer] before continuing so you understand some of
 the concepts we're discussing in this documentation. First up, we want to
-include the call to our Service Worker on all of our pages to ensure it's
+include the call to our ServiceWorker on all of our pages to ensure it's
 installed, running and able to optimize our requests. This can be done by adding
 the following snippet as early as possible to your page:
 
@@ -25,27 +25,27 @@ the following snippet as early as possible to your page:
 ```
 
 > **NOTE:** We assume that the code explained in the [Usage](#usage) section is
-> included in the above requested `sw.js` file as this activates our Service
-> Worker.
+> included in the above requested `sw.js` file as this activates our
+> ServiceWorker.
 
 The reason we want to load this script as early as possible is because we want
 to intercept and cache the responses of our the API requests for future page
 visits. We're not loading anything during the `activateion` and `install` events
-of the Service Worker so we're not blocking any additional resources from
+of the ServiceWorker so we're not blocking any additional resources from
 loading.
 
 ## Usage
 
 Now that all your pages have the snipped included we can setup our `sw.js` file.
-The Service Worker is bundled with `payper` module that you [previously
-installed][install]. The Service Worker is available under the `payper/worker`
+The ServiceWorker is bundled with `payper` module that you [previously
+installed][install]. The ServiceWorker is available under the `payper/worker`
 import route as illustrated below.
 
 ```js
 const Payper = require('payper/worker');
 ```
 
-Once you've imported the Service Worker logic you can create a new `Payper`
+Once you've imported the ServiceWorker logic you can create a new `Payper`
 instance.
 
 ```js
@@ -76,11 +76,11 @@ payper.register();
 
 Compile this to the `sw.js` file and you're ready go.
 
-### How do I know if my request was handled by the Service Worker
+### How do I know if my request was handled by the ServiceWorker
 
 The Network panel in the browsers Web Inspector gives detailed information
 about the requests that are made by your application. When a request is answered
-by a Service Worker it's size will state `(ServiceWorker)` instead of the
+by a ServiceWorker it's size will state `(ServiceWorker)` instead of the
 actual file size. In addition to that, any request that is made **within** the
 ServiceWorker will have a gear (⚙️) icon in front of it.
 
@@ -122,11 +122,11 @@ navigator.serviceWorker.ready.then(function ready(sw) {
 });
 ```
 
-### Integrating into an existing Service Worker setup
+### Integrating into an existing ServiceWorker setup
 
-Integrating with an existing Service Worker requires a few more steps than just
+Integrating with an existing ServiceWorker requires a few more steps than just
 simply calling the `Payper#register` method as this assigns the various
-listeners to the Service Worker so it might make more sense to just use
+listeners to the ServiceWorker so it might make more sense to just use
 your pre-existing listeners and work together with your code.
 
 To make this work we'll be using the following API methods:
@@ -181,7 +181,7 @@ self.addEventListener('message', async function handler(event) {
 
 ### Workbox
 
-Workbox is set of libraries that helps writing Service Workers. The following
+Workbox is set of libraries that helps writing ServiceWorkers. The following
 example below illustrates how the Payper worker integrates with Workbox's
 routing system to intercept specific request.
 
