@@ -59,10 +59,15 @@ class PayperWorker {
    * communicate with the worker and interact with the exposed API.
    *
    * @param {ExtendableMessageEvent} event Service Worker's incoming message.
-   * @private
+   * @returns {Boolean} Indication that message is handled by Payper.
+   * @public
    */
   async message(event) {
-    if (!event.data || typeof event.data !== 'object') return;
+    if (
+       !event.data
+    || typeof event.data !== 'object'
+    || typeof event.data.type !== 'string'
+    || !event.data.type.startsWith('payper:')) return false;
 
     switch (event.data.type) {
       //
@@ -77,6 +82,8 @@ class PayperWorker {
         event.waitUntil(this.cache.fill(fresh));
       break;
     }
+
+    return true;
   }
 
   /**

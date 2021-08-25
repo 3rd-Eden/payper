@@ -56,10 +56,10 @@ The instance accepts an `Object` with the following properties for when you want
 to customize the inner workings of the worker.
 
 - `ttl` Time in milliseconds that indicates how long cached stale bundles should
-  be kept in our caches. This is the time since the item was last used. 
+  be kept in our caches. This is the time since the item was last used.
 - `version` The version number of the cache we want to use. This allows you to
   use a completely fresh cache instance where no bundles are previously cached.
-  Only use this if you want to have full control over the cache behavior. When
+  Only use this if you want to have full control over the cache behaviour. When
   left untouched we'll automatically increase version numbers internally when
   breaking changes are introduced in the module.
 
@@ -74,7 +74,53 @@ const payper = new Payper();
 payper.register();
 ```
 
-Compile this to the `sw.js` file and you're ready go. 
+Compile this to the `sw.js` file and you're ready go.
+
+### How do I know if my request was handled by the Service Worker
+
+The Network panel in the browsers Web Inspector gives detailed information
+about the requests that are made by your application. When a request is answered
+by a Service Worker it's size will state `(ServiceWorker)` instead of the
+actual file size. In addition to that, any request that is made **within** the
+ServiceWorker will have a gear (⚙️) icon in front of it.
+
+We introduce additional headers to the request when it's handled by the Payper
+ServiceWorker to give you some more detailed information on how the response
+was constructed. By clicking on the request in the Network panel you can inspect
+there headers. The following headers are added:
+
+- `payper-requested` List of the bundles that have been requested in the browser.
+- `payper-fetched` List of bundles that are not available in our cache and were
+  requested (as a single HTTP request) from the Payper Server.
+- `payper-cached` List of bundles that were read from the ServiceWorker cache
+  layer.
+
+All of the header values are either comma separated, or set to `none` when
+no bundles were cached or requested as seen by the example below:
+
+```
+payper-cached: eventemitter3@4.0.7,url-parse@1.5.3,react@17.0.2,react-dom@17.0.2
+payper-fetched: none
+payper-requested: eventemitter3@4.0.7,url-parse@1.5.3,react@17.0.2,react-dom@17.0.2
+```
+
+### Interacting with the ServiceWorker from your page
+
+Payper Worker listens to the `message` event so you can communicate with the
+Worker using the `postMessage` API.
+
+The following event types are currently supported:
+
+####
+
+```js
+navigator.serviceWorker.ready.then(function ready(sw) {
+  sw.active.postMessage({
+    type: 'payper:paste',
+    contents: 'file-contents-to-be-cached'
+  });
+});
+```
 
 ### Integrating into an existing Service Worker setup
 
@@ -87,6 +133,7 @@ To make this work we'll be using the following API methods:
 
 - [matches](#matches)
 - [concat](#concat)
+- [message](#message)
 
 #### matches
 
@@ -107,13 +154,32 @@ Promise.
 
 The function returns a `Response` with the contents of the request. The contents
 can be a fresh HTTP response in the case an fully uncached request, a fully
-cached result, or a combination of both. 
+cached result, or a combination of both.
 
 ```js
 const response = await payper.concat(event);
 ```
 
-#### Workbox
+#### message
+
+The `message` method is designed to handle the incoming `message` event for
+Payper. It powers our browser API and is required for instantly caching the
+bundle response on the first page when ServiceWorkers are not yet installed.
+The `message` method is an **asynchronous** function and should be called with
+`await` or processed as Promise. The function expects the `event` of the
+`message` event as first argument and returns a `Boolean` as indication if the
+message was directed, and handled by Payper.
+
+```js
+self.addEventListener('message', async function handler(event) {
+  const intercepted = await payper.message(event);
+  if (intercepted) return;
+
+  // Your logic here.
+});
+```
+
+### Workbox
 
 Workbox is set of libraries that helps writing Service Workers. The following
 example below illustrates how the Payper worker integrates with Workbox's
