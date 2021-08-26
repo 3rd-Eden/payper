@@ -71,6 +71,10 @@ listeners and work it's magic. So the completed code can be as simple as:
 const Payper = require('payper/worker');
 const payper = new Payper();
 
+//
+// The register method will assign all required event listeners it can
+// start intercepting the requests.
+//
 payper.register();
 ```
 
@@ -106,21 +110,53 @@ payper-requested: eventemitter3@4.0.7,url-parse@1.5.3,react@17.0.2,react-dom@17.
 
 ### Interacting with the ServiceWorker from your page
 
-Payper Worker listens to the `message` event so you can communicate with the
-Worker using the `postMessage` API.
+Payper Worker listens to the `message` event to allow communication between
+client (web app) and worker (active service worker) using the `postMessage` API.
 
-The following event types are currently supported:
+When a `message` event listener is called by your web app, the `event.data`
+property should have the following format:
 
-####
+```js
+{
+  //
+  // The events are **always** prefixed with `payper:` as indication that these
+  // messages should be handled by the Payper Worker.
+  //
+  type: 'payper:event-type-here',
+
+  //
+  // The payload that the event type expects, strings, objects, we impose no
+  // limitations.
+  //
+  payload: 'contents'
+}
+```
+
+The following event `type`'s are recognised by the Payper Worker:
+
+#### `payper:paste`
+
+The `payper:paste` allows the ServiceWorker to cache responses that might not
+have been intercepted. Our use-case for this is to cache the response when our
+`/payer/**` bundles are requested by a web app but our ServiceWorker has not
+been installed yet. This allows us to eliminate a potential uncached response on
+the next request.
+
+The `payper:paste` event expects the `payload` property to be a `string` that
+contains the contents of the bundle.
 
 ```js
 navigator.serviceWorker.ready.then(function ready(sw) {
   sw.active.postMessage({
     type: 'payper:paste',
-    contents: 'file-contents-to-be-cached'
+    payload: __PAYPER_IFFE_BUNDLE_WRAPPER__.toString()
   });
 });
 ```
+
+> NOTE: The snippet above is already included in every bundle that is requested
+> when the ServiceWorker isn't active yet. This neat little trick allows us to
+> cache responses without having to re-request a bundle.
 
 ### Integrating into an existing ServiceWorker setup
 
@@ -133,7 +169,11 @@ To make this work we'll be using the following API methods:
 
 - [matches](#matches)
 - [concat](#concat)
+- [register](#register)
+- [fetch](#fetch)
 - [message](#message)
+- [activate](#activate)
+- [install](#install)
 
 #### matches
 
@@ -160,18 +200,62 @@ cached result, or a combination of both.
 const response = await payper.concat(event);
 ```
 
+#### register
+
+Our ServiceWorker only works when it's listening to specific ServiceWorker
+events. This method registers those listeners so we can start intercepting
+the events. The following listeners can be added:
+
+- `fetch`: Intercept the requests.
+- `activate`: Clean our caches.
+- `install`: Speeds up activation of our ServiceWorker.
+- `message`: Listens to postMessage to cache executed bundles.
+
+The method accepts an array of events as argument, when no listeners are
+provided as argument, we will assign all of our required listeners.
+
+```js
+payper.register();
+payper.register(['activate', 'install']);
+```
+
+#### fetch
+
+The `fetch` method is designed to handle the incoming `fetch` event for
+payper. It responds with the result of [concat](#concat) when the request
+[matches](#matches). The `fetch` method is an **asynchronous** function and
+should be called with `await` or processed as promise. The function expects the
+`event` of the `fetch` event as first argument and returns a `boolean` as
+indication if the message was directed, and handled by Payper.
+
+```js
+self.addEventListener('fetch', async function handleFetch(event) {
+  const intercepted = await payper.fetch(event);
+  if (intercepted) return;
+
+  // Your logic here.
+});
+```
+
+Alternatively, you can also use the [`payper#register`](#register) method to
+automatically assign this event:
+
+```js
+payper.register(['message']);
+```
+
 #### message
 
 The `message` method is designed to handle the incoming `message` event for
-Payper. It powers our browser API and is required for instantly caching the
+Payper. It powers our browser api and is required for instantly caching the
 bundle response on the first page when ServiceWorkers are not yet installed.
-The `message` method is an **asynchronous** function and should be called with
-`await` or processed as Promise. The function expects the `event` of the
-`message` event as first argument and returns a `Boolean` as indication if the
+the `message` method is an **asynchronous** function and should be called with
+`await` or processed as promise. The function expects the `event` of the
+`message` event as first argument and returns a `boolean` as indication if the
 message was directed, and handled by Payper.
 
 ```js
-self.addEventListener('message', async function handler(event) {
+self.addEventListener('message', async function message(event) {
   const intercepted = await payper.message(event);
   if (intercepted) return;
 
@@ -179,7 +263,60 @@ self.addEventListener('message', async function handler(event) {
 });
 ```
 
-### Workbox
+Alternatively, you can also use the [`payper#register`](#register) method to
+automatically assign this event:
+
+```js
+payper.register(['message']);
+```
+
+#### activate
+
+The `activate` method is designed to handle the incoming `activate` event for
+Payper. It will claim the client (`clients.claim()`), automatically clean
+and invalidate stale cache. The `message` method is an **asynchronous** function
+and should be called with `await` or processed as Promise.
+
+```js
+self.addEventListener('activate', async function activate() {
+  await payper.activate();
+
+  // Your logic here.
+});
+```
+
+> NOTE: Do not pass this function into the `event.waitUntil` method you want
+> the ServiceWorker to respond to requests as fast as possible.
+
+Alternatively, you can also use the [`payper#register`](#register) method to
+automatically assign this event:
+
+```js
+payper.register(['activate']);
+```
+
+#### install
+
+The `install` method is designed to handle the incoming `install` event for
+Payper. It's sole purpose is to call the `skipWaiting` method so the
+ServiceWorker can be activated when it's installed.
+
+```js
+self.addEventListener('install', function install() {
+  // Your logic here.
+  //
+  payper.install();
+});
+```
+
+Alternatively, you can also use the [`payper#register`](#register) method to
+automatically assign this event:
+
+```js
+payper.register(['install']);
+```
+
+#### Using PayperWorker inside Workbox
 
 Workbox is set of libraries that helps writing ServiceWorkers. The following
 example below illustrates how the Payper worker integrates with Workbox's
@@ -199,6 +336,13 @@ registerRoute(
     return await payper.concat(event);
   }
 );
+
+//
+// The `registerRoute` method takes care of the request handling so we do not
+// need to install our `fetch` handler, but we do want to use the rest of our
+// listeners in the ServiceWorker.
+//
+payper.register(['install', 'activate', 'message']);
 ```
 [workbox]: https://developers.google.com/web/tools/workbox
 [primer]: https://developers.google.com/web/fundamentals/primers/service-workers

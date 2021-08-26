@@ -4,13 +4,13 @@ const extract = require('../utils/extract');
 const CacheStorage = require('./cache.js');
 
 /**
- * The Payper Service Worker is our request optimization strategy. It allows
+ * The Payper ServiceWorker is our request optimization strategy. It allows
  * each page to define the bundles they need to render/interact with the page
  * without having to worry about creating too large bundle which potentially
  * contains code the current page doesn't need or having to worry about too many
  * small bundles as they will be reduced to a single HTTP request.
  *
- * The Service Worker intercepts requests for the `/payper` scope and checks
+ * The ServiceWorker intercepts requests for the `/payper` scope and checks
  * which bundles are requested to be concatenated. From all those bundles it
  * checks which are already cached locally, and removes them from the original
  * request. Only the bundles that are not cached will be requested resulting in
@@ -40,45 +40,52 @@ class PayperWorker {
   }
 
   /**
-   * When our Service Worker is used as standalone we need to assign the
-   * listeners so we can start intercepting
+   * Our ServiceWorker only works when it's listening to specific ServiceWorker
+   * events. This method registers those listeners so we can start intercepting
+   * the events. The following listeners can be added:
    *
+   * - fetch: Intercept the requests.
+   * - activate: Clean our caches.
+   * - install: Speeds up activation of our ServiceWorker.
+   * - message: Listens to postMessage to cache executed bundles.
+   *
+   * When no listeners are provided as argument, we will assign all of our
+   * required listeners.
+   *
+   * @param {Array} [listeners] Listeners that we should interact with.
    * @public
    */
-  register() {
-    [
-      'fetch',        // Intercept the requests.
-      'activate',     // Clean our caches.
-      'install',      // Speeds up activation of our Service Worker.
-      'message',      // Listens to postMessage to cache executed bundles.
-    ].forEach(method => self.addEventListener(method, this[method].bind(this)));
+  register(listeners = ['fetch', 'activate', 'install', 'message']) {
+    listeners.forEach(method => self.addEventListener(method, this[method].bind(this)));
   }
 
   /**
    * Listen to the `postMessage` message event. This allows developers to
    * communicate with the worker and interact with the exposed API.
    *
-   * @param {ExtendableMessageEvent} event Service Worker's incoming message.
+   * @param {ExtendableMessageEvent} event ServiceWorker's incoming message.
    * @returns {Boolean} Indication that message is handled by Payper.
    * @public
    */
   async message(event) {
-    if (
-       !event.data
-    || typeof event.data !== 'object'
-    || typeof event.data.type !== 'string'
-    || !event.data.type.startsWith('payper:')) return false;
+    const { data } = event;
 
-    switch (event.data.type) {
+    if (
+       !data
+    || typeof data !== 'object'
+    || typeof data.type !== 'string'
+    || !data.type.startsWith('payper:')) return false;
+
+    switch (data.type) {
       //
-      // On the first visit of the page the Service Worker will not be loaded
+      // On the first visit of the page the ServiceWorker will not be loaded
       // yet so the requested bundles will be downloaded and executed normally.
       // In order to still cache the contents without having to make another
       // HTTP request the response will include this "postMessage" call to the
-      // Service Worker with contents of the bundle so it can be cached.
+      // ServiceWorker with contents of the bundle so it can be cached.
       //
       case 'payper:paste':
-        const fresh = this.parse(event.data.contents);
+        const fresh = this.parse(data.payload);
         event.waitUntil(this.cache.fill(fresh));
       break;
     }
@@ -87,7 +94,7 @@ class PayperWorker {
   }
 
   /**
-   * The Service Worker was installed, so we want to notify the Service Worker
+   * The ServiceWorker was installed, so we want to notify the ServiceWorker
    * that we should be activated as soon as possible to be able to intercept and
    * transform the outgoing Payper requests.
    *
@@ -95,7 +102,7 @@ class PayperWorker {
    */
   install() {
     //
-    // Normally a Service Worker would only activate on install after a refresh
+    // Normally a ServiceWorker would only activate on install after a refresh
     // but want to enhance the requests as quickly as possible so we can start
     // building our cache and "improve" the next visit.
     //
@@ -103,7 +110,7 @@ class PayperWorker {
   }
 
   /**
-   * The Service Worker has become active, we want to purge the cache to see if
+   * The ServiceWorker has become active, we want to purge the cache to see if
    * anything needs invalidation.
    *
    * @private
@@ -113,7 +120,7 @@ class PayperWorker {
 
     //
     // Calling the `event.waitUntil` during the `activation` phase could cause
-    // Service Workers to buffer the `push` and more importantly, the `fetch`
+    // ServiceWorkers to buffer the `push` and more importantly, the `fetch`
     // events until passed Promises settles. Old or state cache does not affect
     // the functioning of our code. If the cache version is increased we're
     // going to have a clean cache anyways, and the invalidation pass will only
@@ -132,15 +139,17 @@ class PayperWorker {
    * @private
    */
   fetch(event) {
-    if (!this.matches(event.request)) return;
+    if (!this.matches(event.request)) return false;
+
     event.respondWith(this.concat(event));
+    return true;
   }
 
   /**
    * Concatenate all requested bundles into a single response.
    *
    * @param {FetchEvent} event Fetch event.
-   * @returns {Response} Response for the Service Worker, guaranteed.
+   * @returns {Response} Response for the ServiceWorker, guaranteed.
    * @public
    */
   async concat(event) {

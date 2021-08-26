@@ -11,3 +11,5 @@ registerRoute(
     return await payper.concat(event);
   }
 );
+
+payper.register(['install', 'activate', 'message']);

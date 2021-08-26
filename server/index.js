@@ -172,18 +172,18 @@ class PayperServer {
    * Worker to have it cache the result **before** the next visit happens.
    *
    * @param {String} payload Concatenated bundles.
-   * @returns {String} IIF wrapper.
+   * @returns {String} IIFE wrapper.
    * @private
    */
   wrap(payload) {
-    return `(function __payper__wrap__() {
+    return `(function __PAYPER_IFFE_BUNDLE_WRAPPER__() {
       ${payload}
 
       ;if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(function ready(sw) {
           sw.active.postMessage({
             type: 'payper:paste',
-            contents: __payper__wrap__.toString()
+            payload: __PAYPER_IFFE_BUNDLE_WRAPPER__.toString()
           });
         });
       }
