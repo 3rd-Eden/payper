@@ -28,10 +28,12 @@ class CacheStorage {
     * @param {String} path The path the `payper/server` is working on.
     * @public
    */
-  constructor({ version='0.0.0', path='payper' } = {}) {
-    this.name = `${path}@${version}`;
+  constructor({ version='0.0.0', path='payper', type='text/javascript' } = {}) {
+    this.name = `${path}@${type}@${version}`;
     this.format = format.bind(path);
     this.version = version;
+    this.type = type;
+    this.path = path;
   }
 
   /**
@@ -44,11 +46,13 @@ class CacheStorage {
   async clean() {
     const keys = await caches.keys();
     const current = this.version;
+    const type = this.type;
+    const path = this.path;
 
     for (let i = 0; i < keys.length; i++) {
-      const key = keys[0];
+      const key = keys[i];
 
-      if (key.startsWith('payper@') && key.split('@')[0] !== current) {
+      if (key.startsWith(`${path}@${type}@`) && key.split('@').pop() !== current) {
         await caches.delete(key);
       }
     }

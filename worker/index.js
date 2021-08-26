@@ -30,13 +30,18 @@ class PayperWorker {
    * @param {Number} ttl Milliseconds indicating how long stale items are kept
    * @public
    */
-  constructor({ version='0.0.0', path='payper', ttl=2.628e+9 } = {}) {
-    this.cache = new CacheStorage(version);
-    this.settings = { ttl, path };
+  constructor({
+    type='text/javascript',
+    version='0.0.0',
+    path='payper',
+    ttl=2.628e+9
+  } = {}) {
+    this.cache = new CacheStorage({ version, path, type });
+    this.settings = { ttl, path, type };
 
-    this.format = format.bind(path);
     this.matches = matches.bind(path);
     this.extract = extract.bind(path);
+    this.format = format.bind(path);
   }
 
   /**
@@ -154,7 +159,7 @@ class PayperWorker {
    */
   async concat(event) {
     const url = event.request.url;
-    let response
+    let payload
 
     //
     // Our request handler **always** returns something useful. In case of
@@ -163,12 +168,12 @@ class PayperWorker {
     // original response that we made or a new response.
     //
     try {
-      response = await this.request(url);
+      payload = await this.request(url);
     } catch (failure) {
       return failure;
     }
 
-    const { fresh, requested } = response;
+    const { fresh, requested } = payload;
 
     //
     // Now that we have all the freshly requested bundles we want to gather the
@@ -207,8 +212,8 @@ class PayperWorker {
       ])
     );
 
-    const contents = new Blob(responses, { type: 'text/javascript'});
-    return new Response(contents, {
+    const contents = new Blob(responses, { type: this.settings.type });
+    const response = new Response(contents, {
       statusText: 'OK',
       status: 200,
 
@@ -222,6 +227,8 @@ class PayperWorker {
         'payper-cached': Object.keys(cached).join(',') || 'none'
       }
     });
+
+    return response;
   }
 
   /**
@@ -283,8 +290,8 @@ class PayperWorker {
    */
   parse(contents) {
     const chunks = {};
-    const iff = '(function __payper__wrap__() {';
-    const comment = /\/\*! Payper meta\(["{}:,\._\-a-z0-9]+\) \*\//i
+    const iffe = /^\(?function __PAYPER_IFFE_BUNDLE_WRAPPER__\(\)\s\{/;
+    const comment = /\/\*! Payper meta\(["{}:,\._\-a-z0-9]+\) \*\//i;
 
     //
     // Our parser assumes that **everything** above the /* Payper meta() */
@@ -296,9 +303,7 @@ class PayperWorker {
     // bottom of our IFF as that gets ignored automatically by the parser
     // as there is no /* Payper meta() */ comment following it.
     //
-    if (contents.startsWith(iff)) {
-      contents = contents.slice(iff.length);
-    }
+    contents = contents.replace(iffe, '');
 
     //
     // This indicates where the beginning of the bundle is. And increases once
@@ -313,7 +318,7 @@ class PayperWorker {
       const end = i + 1;
       const data = lines.slice(start, end).join('\n');
       const metadata = /meta\(([^)]+?)\)/.exec(lines[i])[1];
-      const blob = new Blob([data], { type: 'text/javascript'});
+      const blob = new Blob([data], { type: this.settings.type });
       const response = new Response(blob, { status: 200, statusText: 'OK' });
       const { name, version, cache } = JSON.parse(metadata);
       const bundle = `${name}@${version}`;

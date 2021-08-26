@@ -49,7 +49,7 @@ Once you've imported the ServiceWorker logic you can create a new `Payper`
 instance.
 
 ```js
-const payper = new Payper({ version, ttl });
+const payper = new Payper({ version, ttl, path });
 ```
 
 The instance accepts an `Object` with the following properties for when you want
@@ -62,6 +62,10 @@ to customize the inner workings of the worker.
   Only use this if you want to have full control over the cache behaviour. When
   left untouched we'll automatically increase version numbers internally when
   breaking changes are introduced in the module.
+- `path` Name of the path that your [Payper Server][server] is registered on.
+  Defaults to `payper`, so it intercepts requests from `/payper/` based paths.
+- `type` The Content-Type of the bundles that we're handling.
+  Defaults to `text/javascript`. 
 
 Now that you've created a new instance all you have to call is the
 `payper#register` method and it will automatically assign all the required event
@@ -347,3 +351,4 @@ payper.register(['install', 'activate', 'message']);
 [workbox]: https://developers.google.com/web/tools/workbox
 [primer]: https://developers.google.com/web/fundamentals/primers/service-workers
 [install]: https://github.com/3rd-Eden/payper#installation
+[server]: https://github.com/3rd-Eden/payper/tree/main/server

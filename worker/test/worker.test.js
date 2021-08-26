@@ -80,7 +80,7 @@ describe('Payper Service Worker', function () {
 
   describe('Response parsing', function () {
     it('parses removes the wrapping iff if it exists', function () {
-      const contents = `(function __payper__wrap__() {
+      const contents = `(function __PAYPER_IFFE_BUNDLE_WRAPPER__() {
         (function () {
           throw new Error('I should not be executed');
         })()
@@ -90,7 +90,7 @@ describe('Payper Service Worker', function () {
           navigator.serviceWorker.ready.then(function ready(sw) {
             sw.active.postMessage({
               type: 'payper:paste',
-              contents: __payper__wrap__.toString()
+              contents: __PAYPER_IFFE_BUNDLE_WRAPPER__.toString()
             });
           });
         }
