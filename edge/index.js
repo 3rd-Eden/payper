@@ -1,4 +1,9 @@
-class Edge {
+const PayperServer = require('../server/index.js');
+
+class PayperEdge extends PayperServer {
 }
 
-module.exports = Edge;
+//
+//
+//
+module.exports = PayperEdge;

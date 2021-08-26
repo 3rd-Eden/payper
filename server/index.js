@@ -4,6 +4,9 @@ const missing = require('./missing.js');
 const failure = require('./failure.js');
 
 /**
+ * The Payper Server is basically a server-side bundle bundler as it combines
+ * multiple bundles into a single request that understood by browsers, and our
+ * Payper Worker.
  *
  * @class PayperServer
  * @public
