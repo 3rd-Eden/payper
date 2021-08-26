@@ -14,12 +14,12 @@ const payper = new Payper({ options });
 const client = new S3({...});
 
 payper.add(async function({ name, version }) {
-  const contents = await client.getObject({
+  const content = await client.getObject({
     Bucket: 'MyBucketFullOfBundles',
     Key: `${name}-${version}.js`
   }));
 
-  return contents.Body.toString();
+  return content.Body.toString();
 });
 
 exports.handler = async function handler({ path }) {
@@ -28,6 +28,34 @@ exports.handler = async function handler({ path }) {
     body: await payper.conat(path)
   }
 }
+```
+
+### Akamai EdgeWorkers
+
+```js
+const { createResponse } = require('create-response');
+const { EdgeKV } = require('./edgekv.js');
+const Payper = require('payper/edge');
+
+const payper = new Payper({ options });
+const edgeKv = new EdgeKV({ 
+  namespace: 'default', 
+  group: 'bundles'
+});
+
+payper.add(async function({ name, version }) {
+  const content = await edgeKv.getText({ item: `${name}-${version}` });
+
+  return content;
+});
+
+export async function responseProvider(request) {
+  const bundles = await payper.concat(request.path);
+
+  return return Promise.resolve(createResponse(200, {
+    'Content-Type': ['text/javascript']
+  }, bundles));
+};
 ```
 
 [server]: https://github.com/3rd-Eden/payper/tree/main/server
