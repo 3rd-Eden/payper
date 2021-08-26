@@ -26,18 +26,19 @@ running:
 npm install --save payper
 ```
 
-This single module provides access to:
+This single module provides access to both client and server libraries:
 
-- [Payper Server](./server/README.md) Server-side API that concatenates multiple
+- [`payper/server`](./server/README.md) Server-side API that concatenates multiple
   bundles together into a single request.
-- [Service Worker](./worker/README.md) Service Worker which implements our
+- [`payper/worker`](./worker/README.md) Service Worker which implements our
   progressive enhanced bundle splitting and caching strategy.
-- [Sandbox](./sandbox/README.md) Our sandbox application which runs various
-  frameworks which showcases different integration patterns.
-- [Edge/Lambda/Cloud functions](./edge/README.md) Integration for Lambda, Edge,
-  serverless buzzword.
 
-See these individual leaf packages for usage.
+In addition to those projects we also host:
+
+- [Development Sandbox](./sandbox/README.md) Our sandbox application which runs
+  various frameworks which showcases different integration patterns.
+- [Edge/Lambda/Cloud functions](./edge/README.md) Integration for Lambda, Edge,
+  serverless buzzword (development in-progress).
 
 ## How does Payper optimize bundle loading
 
