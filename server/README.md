@@ -1,11 +1,14 @@
 # Payper Server
 
-Run Payper on your own server or use it as development tool and use our edge
+Run Payper on your own server, use it as development tool, and use our edge
 functionality in production, you decide what is best for your use-case.
+
+The Payper Server bundles your bundles into a single request but is cached
+individually in the browser using the [Payper Worker][worker].
 
 ## Usage
 
-The server is bundled with `payper` module that you [previously installed][install]. 
+The server is bundled with `payper` module that you [previously installed][install].
 The API is available under the `payper/api` import route as illustrated below.
 
 ```js
@@ -43,13 +46,31 @@ payper.add('vendor', async function vendor({ version }) {
 
 As we can see in the example above, we've registered a bundle with the name
 `vendor` and assigned a function that will read the file contents from in
-`bundles` folder and returns the result as **string**. 
+`bundles` folder and returns the result as **string**.
 
 The version number that your function receives is **user controlled**, we do not
 sanitize the version number as your versioning scheme is completely up to you.
 Maybe you follow semver for versioning your bundles, content hashes, or maybe
 just pure chaos, what ever you've chosen it's your responsibility to validate
-it.
+it. To given an example, consider the following requests:
+
+```
+/payper/vendor@2001.23.1
+/payper/vendor@lol-this-is-also-considered-a-function
+/payper/vendor@af23281
+```
+
+Everything that you see after the `@` will be passed as **string** into your
+assigned bundle handler. Assume that bad actors exist and validate if the
+received version matches your expected format, and that the version actually
+exists. When this is not the case, either return `null`, `undefined`, `false`
+or an empty string to either forward it to your [catch-all] handler or trigger a
+404 [missing] response. Alternatively throwing an error will trigger a 500
+[failure] response. It's worth noting that the only requirement we set is that
+the received URL matches the following Regular Expression
+`/payper/[\\._\\@\\-a-z0-9]+`.
+
+#### One for all, all for one
 
 In addition to supporting the registration of standalone bundles, we also
 support a **single** catch-all handler. This catch-all handler will be called if
@@ -107,7 +128,7 @@ set to `text/javascript` in order to correctly executed in the browser.
 const response = await payper.concat(request);
 ```
 
-#### Intercept
+#### intercept
 
 This is a combination of both methods, but writes the response. This is only
 meant for **development** purposes as this function is **not optimized for
@@ -127,6 +148,50 @@ http.createServer(function (req, res) {
   res.end('Not Found');
 });
 ```
+
+### Requesting the bundles
+
+Once your Payper Server is running you can start requesting the bundles that
+you've previously registered with the server. We assume that the `name` and
+`version` of the bundle are separated using the `@` symbol and that path that
+you request the bundle from is `/payper/` unless configured otherwise. To
+request the `vendor` bundle with version `ea2z89f` add the
+following script tag to your webapp:
+
+```
+<script src="/payper/vendor@ea2z89f"></script>
+```
+
+When you want to request more bundles in a single request simply threat each
+bundle as their own path in the URL:
+
+```
+/payper/react@17/react-dom@17/react-intl@5.20.11
+```
+
+Remember that order of execution of these bundles might matter. The bundles
+will be included in the order that you specified in the path:
+
+```
+/payper/accordion@12.1/button@12.4/spinner@2.09
+```
+
+The example above would result in a the following response file structure:
+
+```
+|----------------|
+| accordion@12.1 |
+|----------------|
+|   button@12.4  |
+|----------------|
+|  spinner@2.09  |
+|----------------|
+```
+
+It's worth noting that URL limits do exist in browsers, but start around
+2000 characters, and at that point you're including so many bundles in a
+single request that it might make sense to split them up anyways to promote
+more parallel loading assets.
 
 ### Framework integration
 
@@ -201,5 +266,11 @@ fastify.get('/payper/*', async intercept(request, reply) {
 })();
 ```
 
+A working version of these, and many other examples can be found in our
+[Sandbox Application][sandbox].
+
 [install]: https://github.com/3rd-Eden/payper#installation
 [sandbox]: https://github.com/3rd-Eden/payper/tree/main/sandbox
+[worker]: https://github.com/3rd-Eden/payper/tree/main/worker
+[missing]: https://github.com/3rd-Eden/payper#missing
+[missing]: https://github.com/3rd-Eden/payper#failure
