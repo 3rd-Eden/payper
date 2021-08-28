@@ -282,20 +282,18 @@ class PayperWorker {
    */
   parse(contents) {
     const chunks = {};
-    const iffe = /^\(?function __PAYPER_IFFE_BUNDLE_WRAPPER__\(\)\s\{/;
-    const comment = /\/\*! Payper meta\(["{}:,\._\-a-z0-9]+\) \*\//i;
 
     //
     // Our parser assumes that **everything** above the /* Payper meta() */
-    // comment is part of the bundle, so when we wrap our bundle with an IFF
+    // comment is part of the bundle, so when we wrap our bundle with an IFFE
     // this is seen as part of the first bundle leading to JS errors. So we
     // to remove this from the contents.
     //
     // We don't need to worry about the contents that are included at the
-    // bottom of our IFF as that gets ignored automatically by the parser
+    // bottom of our IFFE as that gets ignored automatically by the parser
     // as there is no /* Payper meta() */ comment following it.
     //
-    contents = contents.replace(iffe, '');
+    contents = contents.replace(PayperWorker.iffe, '');
 
     //
     // This indicates where the beginning of the bundle is. And increases once
@@ -305,7 +303,7 @@ class PayperWorker {
     const lines = contents.split('\n');
 
     for (let i = 0; i < lines.length; i++) {
-      if (!comment.test(lines[i])) continue;
+      if (!PayperWorker.comment.test(lines[i])) continue;
 
       const end = i + 1;
       const data = lines.slice(start, end).join('\n');
@@ -326,6 +324,22 @@ class PayperWorker {
     return chunks;
   }
 }
+
+/**
+ * Detects the IFFE wrapper from the Payper Server.
+ *
+ * @type {RegExp}
+ * @private
+ */
+PayperWorker.iffe = /^\(?function __PAYPER_IFFE_BUNDLE_WRAPPER__\(\)\s\{/;
+
+/**
+ * Detects the meta comment which contains the bundle information.
+ *
+ * @type {RegExp}
+ * @private
+ */
+PayperWorker.comment = /\/\*! Payper meta\(["{}:,\._\-a-z0-9]+\) \*\//i;
 
 //
 // Expose the worker interface so it can be consumed by test suites.

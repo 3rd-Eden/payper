@@ -1,3 +1,4 @@
+const { suffix, prefix } = require('../../server/iffe');
 const { describe, it, beforeEach } = require('mocha');
 const CacheStorage = require('./cachestorage');
 const Payper = require('../index.js');
@@ -79,22 +80,14 @@ describe('Payper Service Worker', function () {
   });
 
   describe('Response parsing', function () {
-    it('parses removes the wrapping iff if it exists', function () {
-      const contents = `(function __PAYPER_IFFE_BUNDLE_WRAPPER__() {
+    it('parses removes the wrapping iffe if it exists', function () {
+      const contents = `${prefix}
         (function () {
           throw new Error('I should not be executed');
         })()
         /*! Payper meta({"name":"foo","version":"bar"}) */
 
-        ;if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-          navigator.serviceWorker.ready.then(function ready(sw) {
-            sw.active.postMessage({
-              type: 'payper:paste',
-              contents: __PAYPER_IFFE_BUNDLE_WRAPPER__.toString()
-            });
-          });
-        }
-      }());`;
+        ${suffix}`;
 
       const chunks = payper.parse(contents);
 
@@ -106,7 +99,29 @@ describe('Payper Service Worker', function () {
       const blob = response.blob;
       const data = blob.data[0];
 
-      assume(data).does.not.include('__payper__wrap__');
+      assume(data).does.not.include('__PAYPER_IFFE_BUNDLE_WRAPPER__');
+    });
+
+    it('parses removes the wrapping iffe when used as function', function () {
+      const contents = `${prefix}
+        (function () {
+          throw new Error('I should not be executed');
+        })()
+        /*! Payper meta({"name":"foo","version":"bar"}) */
+
+        ${suffix}`.slice(1, -4)
+
+      const chunks = payper.parse(contents);
+
+      assume(chunks).is.a('object');
+      assume(chunks).is.length(1);
+
+      const chunk = chunks['foo@bar'];
+      const response = chunk.response;
+      const blob = response.blob;
+      const data = blob.data[0];
+
+      assume(data).does.not.include('__PAYPER_IFFE_BUNDLE_WRAPPER__');
     });
 
     it('parses a single bundle response', function () {
