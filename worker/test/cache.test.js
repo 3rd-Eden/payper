@@ -58,7 +58,7 @@ describe('Payper Service Worker Cache', function () {
 
       assume(headers.get('payper-hit')).exists();
 
-      const bundles = await cache.gather([{
+      const bundles = await cache.read([{
         name: 'foo',
         version: 'bar',
         bundle: 'foo@bar'
@@ -93,7 +93,7 @@ describe('Payper Service Worker Cache', function () {
 
       assume(headers.get('payper-hit')).does.not.exist();
 
-      const bundles = await cache.gather([{
+      const bundles = await cache.read([{
         name: 'foo',
         version: '1.2.3',
         bundle: 'foo@1.2.3'
@@ -114,13 +114,13 @@ describe('Payper Service Worker Cache', function () {
       await smh234.fill(item('another@1.2.3'));
       await diff.fill(item('diff@1.2.3'));
 
-      const smh123Item = await smh123.gather([expand('smh@1.2.3')]);
+      const smh123Item = await smh123.read([expand('smh@1.2.3')]);
       assume(smh123Item['smh@1.2.3']).is.a('object');
 
-      const smh234Item = await smh234.gather([expand('another@1.2.3')]);
+      const smh234Item = await smh234.read([expand('another@1.2.3')]);
       assume(smh234Item['another@1.2.3']).is.a('object');
 
-      const diff123Item = await diff.gather([expand('diff@1.2.3')]);
+      const diff123Item = await diff.read([expand('diff@1.2.3')]);
       assume(diff123Item['diff@1.2.3']).is.a('object');
 
       //
@@ -128,13 +128,13 @@ describe('Payper Service Worker Cache', function () {
       //
       await smh234.clean();
 
-      const smh123clean = await smh123.gather([expand('smh@1.2.3')]);
+      const smh123clean = await smh123.read([expand('smh@1.2.3')]);
       assume(smh123clean).is.length(0);
 
-      const smh234clean = await smh234.gather([expand('another@1.2.3')]);
+      const smh234clean = await smh234.read([expand('another@1.2.3')]);
       assume(smh234clean['another@1.2.3']).is.a('object');
 
-      const diff123clean = await diff.gather([expand('diff@1.2.3')]);
+      const diff123clean = await diff.read([expand('diff@1.2.3')]);
       assume(diff123clean['diff@1.2.3']).is.a('object');
     });
   });

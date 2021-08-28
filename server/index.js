@@ -1,7 +1,9 @@
 const extract = require('../utils/extract.js');
 const matches = require('../utils/matches.js');
+const { prefix, suffix } = require('./iffe');
 const missing = require('./missing.js');
 const failure = require('./failure.js');
+const { Readable } = require('stream');
 
 /**
  * The Payper Server is basically a server-side bundle bundler as it combines
@@ -15,10 +17,8 @@ class PayperServer {
   /**
    * Creates a new Payper instance.
    *
-   * @param {String} version The version of the cache we want to use.
    * @param {String} path The path the `payper/server` is working on.
-   * @param {Number} ttl Milliseconds indicating how long stale items are kept
-   * @public
+   * @private
    */
   constructor({ path='payper' } = {}) {
     this.bundles = new Map();
@@ -96,16 +96,35 @@ class PayperServer {
   }
 
   /**
-   * Concatenate the requested bundles into a singular request that can be returned
-   * to our users.
+   * Streamable interface of our `payper#concat` method.
    *
    * @param {Array} url The `/payper/*` URL that we need to concatenate
-   * @returns {Array}
+   * @returns {ReadableStream} Readable stream that writes the responses.
    * @public
    */
-  async concat(url) {
-    const asterisk = this.bundles.get('*');
+  stream(url) {
+    const responses = [ prefix, ...this.request(url), suffix ];
+
+    return new Readable({
+      async read() {
+        if (!responses.length) return this.push(null);
+
+        this.push(await Promise.resolve(responses.shift()));
+      }
+    });
+  }
+
+  /**
+   * Transforms the request in to an array of promises that can
+   * resolved to bundle contents.
+   *
+   * @param {Array} url The `/payper/*` URL that we need to concatenatel
+   * @returns {Array} Ordered array of Promises.
+   * @private
+   */
+  request(url) {
     const requested = this.extract(url);
+    const asterisk = this.bundles.get('*');
 
     /**
      * Gather the source of the requested bundle.
@@ -161,36 +180,20 @@ class PayperServer {
       return [contents, meta].join('\n');
     }
 
-    const payload = await Promise.all(requested.map(gatherSources));
-    return this.wrap(payload.join('\n'));
+    return requested.map(gatherSources);
   }
 
   /**
-   * When a user visits the page for the first time our Service Worker is not
-   * active yet, that means that our requests are not cached by the system and
-   * that only on the next reload/visit will the resource be cached. To optimize
-   * this flow we're wrapping the payload in a **named** function so we can
-   * extract the contents of the bundle by simply calling `toString()` on the
-   * function. We can then pass the contents of the bundle down the Service
-   * Worker to have it cache the result **before** the next visit happens.
+   * Concatenate the requested bundles into a singular request that can be returned
+   * to our users.
    *
-   * @param {String} payload Concatenated bundles.
-   * @returns {String} IIFE wrapper.
-   * @private
+   * @param {Array} url The `/payper/*` URL that we need to concatenate
+   * @returns {String} The bundle that we need to write.
+   * @public
    */
-  wrap(payload) {
-    return `(function __PAYPER_IFFE_BUNDLE_WRAPPER__() {
-      ${payload}
-
-      ;if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(function ready(sw) {
-          sw.active.postMessage({
-            type: 'payper:paste',
-            payload: __PAYPER_IFFE_BUNDLE_WRAPPER__.toString()
-          });
-        });
-      }
-    }());`
+  async concat(url) {
+    const payload = await Promise.all(this.request(url));
+    return [ prefix, ...payload, suffix ].join('\n');
   }
 
   /**

@@ -59,33 +59,13 @@ class CacheStorage {
   }
 
   /**
-   * Check which of the requested bundles are not cached by our service worker
-   * and needs to be forwarded to the API point. This allows us to make smaller
-   * requests as certain bundles might already be cached by this system.
-   *
-   * @param {Array} requested Array with name/version objects.
-   * @returns {Array} List of names/values that are not in our cache.
-   * @public
-   */
-  async missing(requested) {
-    const cache = await caches.open(this.name);
-
-    const bundles = await Promise.all(requested.map(async (data) => {
-      const has = await cache.match(this.format(data.bundle), matchOpts);
-      return has ? null : data;
-    }));
-
-    return bundles.filter(Boolean);
-  }
-
-  /**
-   * Gather all the requested cached items.
+   * Read all the requested items from the cache.
    *
    * @param {Array} requested Array with name/version objects.
    * @returns {Object} All the responses.
    * @public
    */
-  async gather(requested) {
+  async read(requested) {
     const cache = await caches.open(this.name);
 
     const bundles = await Promise.all(requested.map(async (data) => {
@@ -105,14 +85,14 @@ class CacheStorage {
    * Update the requested bundles with a fresh `payper-hit` header where the
    * value is the current EPOCH so it can be used later for cache invalidation.
    *
-   * @param {Array} requested Array with name/version objects.
-   * @private
+   * @param {Array} bundles Array with bundle names to refresh.
+   * @public
    */
-  async hit(requested) {
+  async hit(bundles) {
     const cache = await caches.open(this.name);
 
-    requested.map(async (data) => {
-      const url = this.format(data.bundle);
+    bundles.map(async (bundle) => {
+      const url = this.format(bundle);
       const response = await cache.match(url, matchOpts);
 
       if (!response) return;

@@ -19,13 +19,13 @@ app.use('/', express.static('bundles'));
 //
 // Handle the /payper/* API requests.
 //
-app.get('/payper/*', async function intercept(req, res) {
-  const response = await payper.concat(req.url);
-
+app.get('/payper/*', function intercept(req, res) {
   console.log('Handling inbound API request for bundles', req.url);
 
   res.set('Content-Type', 'text/javascript');
-  res.send(response);
+
+  const stream = payper.stream(req.url);
+  stream.pipe(res);
 });
 
 //

@@ -159,47 +159,13 @@ class PayperWorker {
    */
   async concat(event) {
     const url = event.request.url;
-    let payload
+    let data;
 
-    //
-    // Our request handler **always** returns something useful. In case of
-    // a successful execution it will return the parsed information and in case
-    // on error that happens during fetching, or parsing it will return the
-    // original response that we made or a new response.
-    //
     try {
-      payload = await this.request(url);
+      data = await this.request(url, 'text');
     } catch (failure) {
       return failure;
     }
-
-    const { fresh, requested } = payload;
-
-    //
-    // Now that we have all the freshly requested bundles we want to gather the
-    // previously cached bundles (if they exist) so we can assemble a full
-    // response.
-    //
-    const old = requested.filter((data) => !(data.bundle in fresh));
-    const cached = await this.cache.gather(old);
-
-    //
-    // By using the `requested` array as map we can guarantee that the files are
-    // included in exactly the same order as the original HTTP requested in case
-    // ordering matters for the execution of the bundles.
-    //
-    const responses = await Promise.all(requested.map(async function merge(data) {
-      if (data.bundle in cached) {
-        return await cached[data.bundle].response.text();
-      }
-
-      //
-      // Fresh responses need to be cloned as the same object of data is going
-      // to be passed into our cache storage which assumes that the responses
-      // are not yet consumed.
-      //
-      return await fresh[data.bundle].response.clone().text();
-    }));
 
     //
     // Update the cache with the freshly requested bundles so we can do a fully
@@ -207,28 +173,37 @@ class PayperWorker {
     //
     event.waitUntil(
       Promise.all([
-        this.cache.fill(fresh),
-        this.cache.hit(old)
+        this.cache.fill(data.fetched),
+        this.cache.hit(Object.keys(data.cached))
       ])
     );
 
-    const contents = new Blob(responses, { type: this.settings.type });
-    const response = new Response(contents, {
-      statusText: 'OK',
-      status: 200,
-
-      //
-      // Introduce an additional set of headers to provide some information
-      // on how the response was constructed.
-      //
-      headers: {
-        'payper-requested': requested.map(({ bundle }) => bundle).join(','),
-        'payper-fetched': Object.keys(fresh).join(',') || 'none',
-        'payper-cached': Object.keys(cached).join(',') || 'none'
-      }
+    const contents = new Blob(await Promise.all(data.responses), {
+      type: this.settings.type
     });
 
-    return response;
+    return new Response(contents, {
+      headers: this.headers(data),
+      statusText: 'OK',
+      status: 200
+    });
+  }
+
+  /**
+   * Generate Payper specific headers that gives developers some additional
+   * information about the request and response were processed by Payper.
+   *
+   * @param {Object} data Object containing the data required for the headers.
+   * @returns {Object}
+   * @private
+   */
+  headers(data) {
+    return {
+      'payper-requested': data.requested.map(({ bundle }) => bundle).join(','),
+      'payper-fetched': Object.keys(data.fetched).join(',') || 'none',
+      'payper-cached': Object.keys(data.cached).join(',') || 'none',
+      'Content-Type': this.settings.type
+    };
   }
 
   /**
@@ -236,47 +211,64 @@ class PayperWorker {
    * chunks so the be cached later if required.
    *
    * @param {String} url The original URL that we've intercepted.
-   * @returns {Object} Object containing requested, missing bundles and chunks
+   * @param {String} [type='text'] The response type that was requested.
+   * @returns {Object} Object containing requested, missing bundles and chunks.
    * @private
    */
-  async request(url) {
-    let fresh = {};
-    const requested = this.extract(url)
-    const missing = await this.cache.missing(requested);
+  async request(url, type='text') {
+    let fetched = {};
 
-    //
-    // In the case where we everything cached, we want to return early so no
-    // empty request is made to the server as this would result in /payper/
-    // request without any bundle data.
-    //
-    if (!missing.length) return { requested, fresh };
+    const requested = this.extract(url);
+    const cached = await this.cache.read(requested);
+    const missing = requested.filter(({ bundle }) => !(bundle in cached));
 
-    const bundles = missing.map(({ bundle }) => bundle);
-    const payperapi = this.format(bundles, url);
-    const response = await fetch(payperapi);
+    if (missing.length) {
+      const bundles = missing.map(({ bundle }) => bundle);
+      const payperapi = this.format(bundles, url);
+      const response = await fetch(payperapi);
 
-    try {
-      //
-      // The clone is an optimization because the calling the `text method
-      // "consumes" the response meaning that it cannot be re-used again.
-      // We want to keep the original fetched response as backup when for some
-      // reason our request building fails.
-      //
-      const contents = await response.clone().text();
-      fresh = this.parse(contents);
-    } catch (e) {
-      //
-      // We are unable to create an optimized Payper bundle request so we must
-      // assume the worse case scenario and fall back to the full bundle
-      // request. We'll try later again, or not. At least the site will
-      // continue to function. As optimization we can check if the requested URL
-      // is the same as our optimized URL because then we can just return the
-      // previous response.
-      if (url === payperapi) throw response;
-      throw await fetch(url);
+      try {
+        //
+        // The clone is an optimization because the calling the `text method
+        // "consumes" the response meaning that it cannot be re-used again. We
+        // want to keep the original fetched response as backup when for some
+        // reason our request building fails.
+        //
+        const contents = await response.clone().text();
+        fetched = this.parse(contents);
+      } catch (e) {
+        //
+        // We are unable to create an optimized Payper bundle request so we must
+        // assume the worse case scenario and fall back to the full bundle
+        // request. We'll try later again, or not. At least the site will
+        // continue to function. As optimization we can check if the requested
+        // URL is the same as our optimized URL because then we can just return
+        // the previous response.
+        //
+        if (url === payperapi) throw response;
+        throw await fetch(url);
+      }
     }
 
-    return { requested, fresh };
+    //
+    // By using the `requested` array as map we can guarantee that the files are
+    // included in exactly the same order as the original HTTP requested in case
+    // ordering matters for the execution of the bundles.
+    //
+    const responses = requested.map(function merge({ bundle }) {
+      //
+      // Fresh responses need to be cloned as the same object of data is going
+      // to be passed into our cache storage which assumes that the responses
+      // are not yet consumed.
+      //
+      const response = bundle in cached
+      ? cached[bundle].response
+      : fetched[bundle].response.clone()
+
+      return response[type]();
+    });
+
+    return { requested, fetched, cached, responses };
   }
 
   /**
