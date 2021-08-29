@@ -18,6 +18,8 @@
 module.exports = function extract(url) {
   return (url.split(`/${this}/`).pop() || '').split('/')
   .map(function parse(bundle) {
+    if (!bundle) return;
+
     //
     // We need to cautious with version parsing here. If for some case we have
     // a bundle with an `@` in the name we don't want to mistake it for
@@ -34,6 +36,7 @@ module.exports = function extract(url) {
       version: versioned ? bundle.slice(lastIndex +1) : '',
       bundle
     };
-  });
+  })
+  .filter(Boolean);
 }
 

@@ -52,6 +52,7 @@ describe('Payper Utils', function () {
 
   describe('extract', function () {
     [
+      { path: '/foo', result: [{ name: 'foo', version: '', bundle: 'foo' }] },
       { path: '/payper/foo@bar', result: [{ name: 'foo', version: 'bar', bundle: 'foo@bar' }] },
       { path: '/payper/c@r@u78a12', result: [{ name: 'c@r', version: 'u78a12', bundle: 'c@r@u78a12' }] },
       { path: '/payper/vendor@1.2.8/accordion@8.9.1', result: [
