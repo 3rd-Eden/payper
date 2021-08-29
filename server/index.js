@@ -62,7 +62,9 @@ class PayperServer {
    */
   intercept(req, res) {
     if (!this.matches(req)) return false;
-    return this.respond(req, res);
+
+    this.respond(req, res);
+    return true;
   }
 
   /**
@@ -118,7 +120,7 @@ class PayperServer {
    * Transforms the request in to an array of promises that can
    * resolved to bundle contents.
    *
-   * @param {Array} url The `/payper/*` URL that we need to concatenatel
+   * @param {Array} url The `/payper/*` URL that we need to concatenate
    * @returns {Array} Ordered array of Promises.
    * @private
    */

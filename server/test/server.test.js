@@ -1,4 +1,5 @@
 const { describe, it, beforeEach } = require('mocha');
+const { prefix, suffix } = require('../iffe.js');
 const Payper = require('../index.js');
 const assume = require('assume');
 
@@ -23,7 +24,7 @@ describe('Payper Server', function () {
     it('returns a JS comment', function () {
       const comment = payper.meta({ name: 'foo', version: '1.2.3' });
 
-      assume(comment).startsWith('/*!');
+      assume(comment).startsWith('/*! Payper');
       assume(comment).endsWith('*/');
     });
 
@@ -137,6 +138,52 @@ describe('Payper Server', function () {
       assume(result).includes('500: An error occured while loading bundle');
       assume(result).includes('Simulating a failed handler');
       assume(result).includes('https://github.com/3rd-Eden/payper/tree/main/api#failure');
+    });
+  });
+
+  describe('HTTP intercepting', function () {
+    it('returns false for non-matching URLs', function () {
+      const intercepted = payper.intercept({ urL: '/yo/not-a/url/we-support' });
+
+      assume(intercepted).is.false();
+    });
+
+    it('returns true for matching URLs', function () {
+      const intercepted = payper.intercept({ url: '/payper/foo@bar' }, {
+        writeHead: () => {},
+        end: () => {}
+      });
+
+      assume(intercepted).is.true();
+    });
+
+    it('writes the response to the received http response', function (next) {
+      payper.add('foo', async function handler({ version }) {
+        assume(version).equals('1.2.9');
+
+        return 'this is the returned content';
+      });
+
+      let writtenHead;
+
+      payper.intercept({ url: '/payper/foo@1.2.9' }, {
+        writeHead: function (code, headers){
+          writtenHead = { code, headers };
+        },
+
+        end: function (contents) {
+          assume(writtenHead.code).equals(200);
+          assume(writtenHead.headers['Content-Type']).equals('text/javascript');
+          assume(writtenHead.headers['Content-Length']).equals(406);
+
+          assume(contents).includes(prefix);
+          assume(contents).includes(suffix);
+          assume(contents).includes('this is the returned content');
+          assume(contents).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":true}) */');
+
+          next();
+        }
+      });
     });
   });
 });
