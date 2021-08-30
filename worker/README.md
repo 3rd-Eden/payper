@@ -65,7 +65,7 @@ to customize the inner workings of the worker.
 - `path` Name of the path that your [Payper Server][server] is registered on.
   Defaults to `payper`, so it intercepts requests from `/payper/` based paths.
 - `type` The Content-Type of the bundles that we're handling.
-  Defaults to `text/javascript`. 
+  Defaults to `text/javascript`.
 
 Now that you've created a new instance all you have to call is the
 `payper#register` method and it will automatically assign all the required event
@@ -92,25 +92,51 @@ by a ServiceWorker it's size will state `(ServiceWorker)` instead of the
 actual file size. In addition to that, any request that is made **within** the
 ServiceWorker will have a gear (⚙️) icon in front of it.
 
-We introduce additional headers to the request when it's handled by the Payper
-ServiceWorker to give you some more detailed information on how the response
-was constructed. By clicking on the request in the Network panel you can inspect
-there headers. The following headers are added:
+We introduce `Server-Timing` headers to the request when it's handled by the
+Payper ServiceWorker to give you some more detailed information on how the
+response was constructed. By clicking on the request in the Network panel you
+can inspect there headers. The following information is added:
 
-- `payper-requested` List of the bundles that have been requested in the browser.
-- `payper-fetched` List of bundles that are not available in our cache and were
+- `requested` List of the bundles that have been requested in the browser.
+- `fetched` List of bundles that are not available in our cache and were
   requested (as a single HTTP request) from the Payper Server.
-- `payper-cached` List of bundles that were read from the ServiceWorker cache
+- `cached` List of bundles that were read from the ServiceWorker cache
   layer.
 
-All of the header values are either comma separated, or set to `none` when
-no bundles were cached or requested as seen by the example below:
+The description (`desc`) field is used to list which bundles were part of that
+specific metric. The duration (`dur`) field is used to indicate how long these
+resources took to load.
 
 ```
-payper-cached: eventemitter3@4.0.7,url-parse@1.5.3,react@17.0.2,react-dom@17.0.2
-payper-fetched: none
-payper-requested: eventemitter3@4.0.7,url-parse@1.5.3,react@17.0.2,react-dom@17.0.2
+Server-Timing: requested;desc="eventemitter3@4.0.7,url-parse@1.5.3,react@17.0.2,react-dom@17.0.2";dur=0,fetched;desc="none";dur=0,cached;desc="eventemitter3@4.0.7,url-parse@1.5.3,react@17.0.2,react-dom@17.0.2";dur=6
 ```
+
+The reason for why we're using the `Server-Timing` header and not custom
+headers is because the Server Timing information is made available to web
+apps using the `performance` interface:
+
+```js
+const entries = performance
+  .getEntries('resource')           // Fetch all resource requests.
+  .filter(function filter(entry) {  // Limit results to serverTiming responses.
+    return entry.serverTiming && entry.serverTiming.length;
+  });
+
+console.log(entries[0].serverTiming);
+```
+
+Outputs the following information:
+
+```js
+[
+  { name: "requested", duration: 0, description: "eventemitter3@4.0.7,url-parse@1.5.3,react@17.0.2,react-dom@17.0.2" },
+  { name: "fetched", duration: 0, description: "none" },
+  { name: "cached", duration: 6, description: "eventemitter3@4.0.7,url-parse@1.5.3,react@17.0.2,react-dom@17.0.2" }
+]
+```
+
+Visit the MDN [`Server-Timing`][timing] page if you want to learn more
+about this header.
 
 ### Interacting with the ServiceWorker from your page
 
@@ -352,3 +378,4 @@ payper.register(['install', 'activate', 'message']);
 [primer]: https://developers.google.com/web/fundamentals/primers/service-workers
 [install]: https://github.com/3rd-Eden/payper#installation
 [server]: https://github.com/3rd-Eden/payper/tree/main/server
+[timing]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Server-Timing

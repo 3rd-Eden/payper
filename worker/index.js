@@ -30,18 +30,37 @@ class PayperWorker {
    * @param {Number} ttl Milliseconds indicating how long stale items are kept
    * @public
    */
-  constructor({
-    type='text/javascript',
-    version='0.0.0',
-    path='payper',
-    ttl=2.628e+9
-  } = {}) {
-    this.cache = new CacheStorage({ version, path, type });
-    this.settings = { ttl, path, type };
+  constructor(custom) {
+    const settings = this.config(custom);
+    const path = settings.path;
+
+    this.cache = new CacheStorage(settings);
+    this.settings = settings;
 
     this.matches = matches.bind(path);
     this.extract = extract.bind(path);
     this.format = format.bind(path);
+  }
+
+  /**
+   * Generates the our base configuration by taking the developers provided
+   * configuration, any querystring based configuration on our SW file and
+   * our base configuration, and merging it into one single config.
+   *
+   * @param {Object} [custom={}] Custom configuration.
+   * @returns {Object} Merged configuration.
+   * @private
+   */
+  config(custom = {}) {
+    const url = new URL(location);
+    const params = Object.fromEntries(url.searchParams);
+
+    return Object.assign({
+      type:'text/javascript',     // We're a JavaScript loader by default.
+      version:'0.0.0',            // Controlles the cache version.
+      path:'payper',              // Path prefix.
+      ttl:2.628e+9                // Month represented in ms.
+    }, params, custom);
   }
 
   /**
@@ -92,6 +111,15 @@ class PayperWorker {
       case 'payper:paste':
         const fresh = this.parse(data.payload);
         event.waitUntil(this.cache.fill(fresh));
+      break;
+
+      //
+      // Allow requests to be pre-fetched/cached by the ServiceWorker so
+      // future bundle requests can be served from cache as well.
+      //
+      case 'payper:precache':
+        const { fetched } = await this.request(data.payload);
+        if (fetched) event.waitUntil(this.cache.fill(fetched));
       break;
     }
 
@@ -193,16 +221,21 @@ class PayperWorker {
    * Generate Payper specific headers that gives developers some additional
    * information about the request and response were processed by Payper.
    *
+   * The Server-Timing header is used as this also allows the browser to read
+   * out these values using the `Performance.getEntries` API.
+   *
    * @param {Object} data Object containing the data required for the headers.
    * @returns {Object}
    * @private
    */
-  headers(data) {
+  headers({ fetched, requested, cached, timing }) {
     return {
-      'payper-requested': data.requested.map(({ bundle }) => bundle).join(','),
-      'payper-fetched': Object.keys(data.fetched).join(',') || 'none',
-      'payper-cached': Object.keys(data.cached).join(',') || 'none',
-      'Content-Type': this.settings.type
+      'Content-Type': this.settings.type,
+      'Server-Timing': [
+        `requested;desc="${requested.map(({ bundle }) => bundle).join(',')}";dur=0`,
+        `fetched;desc="${Object.keys(fetched).join(',') || 'none'}";dur=${timing.fetched || 0}`,
+        `cached;desc="${Object.keys(cached).join(',') || 'none'}";dur=${timing.cached || 0}`
+      ].join(',')
     };
   }
 
@@ -217,12 +250,15 @@ class PayperWorker {
    */
   async request(url, type='text') {
     let fetched = {};
+    let now = Date.now();
 
     const requested = this.extract(url);
     const cached = await this.cache.read(requested);
     const missing = requested.filter(({ bundle }) => !(bundle in cached));
+    const timing = { cached: Date.now() - now };
 
     if (missing.length) {
+      now = Date.now();
       const bundles = missing.map(({ bundle }) => bundle);
       const payperapi = this.format(bundles, url);
       const response = await fetch(payperapi);
@@ -248,6 +284,8 @@ class PayperWorker {
         if (url === payperapi) throw response;
         throw await fetch(url);
       }
+
+      timing.fetched = Date.now() - now;
     }
 
     //
@@ -268,7 +306,7 @@ class PayperWorker {
       return response[type]();
     });
 
-    return { requested, fetched, cached, responses };
+    return { requested, fetched, cached, responses, timing };
   }
 
   /**

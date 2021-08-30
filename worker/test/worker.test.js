@@ -6,7 +6,9 @@ const assume = require('assume');
 
 describe('Payper Service Worker', function () {
   let payper;
+
   global.caches = global.caches || new CacheStorage();
+  global.location = 'http://example.com/sw.js';
 
   global.Blob = class Blob {
     constructor(data, options) {
@@ -23,14 +25,14 @@ describe('Payper Service Worker', function () {
   };
 
   beforeEach(function () {
-    payper = new Payper({ version: '0.0.0', ttl: 3650998091 });
-
     global.self = {
       skipWaiting: () => {},
       clients: {
         claim: () => {}
       }
     };
+
+    payper = new Payper({ version: '0.0.0', ttl: 3650998091 });
   });
 
   describe('lifecycles', function () {
@@ -76,6 +78,39 @@ describe('Payper Service Worker', function () {
           throw new Error('I should never have been called');
         }
       });
+    });
+  });
+
+  describe('Configuration', function () {
+    it('stores the used configuration as settings', function () {
+      payper = new Payper({ version: '0.0.1' });
+
+      assume(payper.settings).is.a('object');
+      assume(payper.settings.version).equals('0.0.1');
+    });
+
+    it('has sane defaults', function () {
+      payper = new Payper();
+
+      assume(payper.settings).is.a('object');
+      assume(payper.settings.version).equals('0.0.0');
+      assume(payper.settings.path).equals('payper');
+      assume(payper.settings.type).equals('text/javascript');
+    });
+
+    it('allows configuration to be passed through the serviceworker file name', function () {
+      const loc = global.location;
+      global.location = 'http://example.com/sw.js?version=0.0.1&another=bar&path=yolo';
+
+      payper = new Payper({ path: 'banana' });
+
+      assume(payper.settings).is.a('object');
+      assume(payper.settings.version).equals('0.0.1');
+      assume(payper.settings.path).equals('banana');
+      assume(payper.settings.another).equals('bar');
+      assume(payper.settings.type).equals('text/javascript');
+
+      global.location = loc;
     });
   });
 
