@@ -38,11 +38,36 @@ module.exports = async function bootstrapped({ ssl, port, url }) {
   });
 
   //
-  // Finally, render our index page
+  // Finally, render our page.
   //
   fastify.get('/', async function index(request, reply) {
     reply.type('text/html').code(200);
-    return await html();
+
+    return await html({
+      bundles: [
+        'eventemitter3@4.0.7',
+        'url-parse@1.5.3',
+        'react@17.0.2',
+        'react-dom@17.0.2'
+      ],
+      framework: 'Fastify',
+      next: '/next'
+    });
+  });
+
+  fastify.get('/next', async function index(request, reply) {
+    reply.type('text/html').code(200);
+
+    return await html({
+      bundles: [
+        'koekiemonster@2.2.1',
+        'url-parse@1.5.3',
+        'react@17.0.2',
+        'react-dom@17.0.2'
+      ],
+      framework: 'Fastify',
+      next: '/'
+    });
   });
 
   await fastify.listen(port);
