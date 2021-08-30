@@ -5,3 +5,4 @@ sandbox/bundles
 *.tgz
 *.log
 .DS_Store
+coverage
