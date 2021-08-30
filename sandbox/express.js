@@ -29,14 +29,40 @@ app.get('/payper/*', function intercept(req, res) {
 });
 
 //
-// Finally, render our index page
+// Finally, render our pages
 //
 app.get('/', async function index(req, res) {
-  const response = await html({ worker: 'workbox-0.0.0' });
+  const response = await html({
+    bundles: [
+      'eventemitter3@4.0.7',
+      'url-parse@1.5.3',
+      'react@17.0.2',
+      'react-dom@17.0.2'
+    ],
+    framework: 'Express',
+    worker: 'workbox-0.0.0',
+    next: '/next'
+  });
 
   res.set('Content-Type', 'text/html');
   res.send(response);
-})
+});
+
+app.get('/next', async function index(req, res) {
+  const response = await html({
+    bundles: [
+      'koekiemonster@2.2.1',
+      'url-parse@1.5.3',
+      'react@17.0.2',
+      'react-dom@17.0.2'
+    ],
+    framework: 'Express',
+    worker: 'workbox-0.0.0'
+  });
+
+  res.set('Content-Type', 'text/html');
+  res.send(response);
+});
 
 //
 // Expose our bootstrapping logic so the application can be started. We're
