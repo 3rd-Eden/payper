@@ -81,6 +81,16 @@ describe('Payper Service Worker', function () {
     });
   });
 
+  describe('Message API', function () {
+    describe('payper:raw', function () {
+      it('stores the raw response')
+    });
+
+    describe('payper:precache', function () {
+      it('requests the url');
+    })
+  });
+
   describe('Configuration', function () {
     it('stores the used configuration as settings', function () {
       payper = new Payper({ version: '0.0.1' });

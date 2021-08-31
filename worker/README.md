@@ -164,21 +164,21 @@ property should have the following format:
 
 The following event `type`'s are recognised by the Payper Worker:
 
-#### `payper:paste`
+#### `payper:raw`
 
-The `payper:paste` allows the ServiceWorker to cache responses that might not
+The `payper:raw` allows the ServiceWorker to cache responses that might not
 have been intercepted. Our use-case for this is to cache the response when our
 `/payer/**` bundles are requested by a web app but our ServiceWorker has not
 been installed yet. This allows us to eliminate a potential uncached response on
 the next request.
 
-The `payper:paste` event expects the `payload` property to be a `string` that
+The `payper:raw` event expects the `payload` property to be a `string` that
 contains the contents of the bundle.
 
 ```js
 navigator.serviceWorker.ready.then(function ready(sw) {
   sw.active.postMessage({
-    type: 'payper:paste',
+    type: 'payper:raw',
     payload: __PAYPER_IFFE_BUNDLE_WRAPPER__.toString()
   });
 });
@@ -187,6 +187,24 @@ navigator.serviceWorker.ready.then(function ready(sw) {
 > NOTE: The snippet above is already included in every bundle that is requested
 > when the ServiceWorker isn't active yet. This neat little trick allows us to
 > cache responses without having to re-request a bundle.
+
+#### `payper:precache`
+
+Precache additional bundles so future requests can be served from cache
+directly. This should only be done after all requests on your page have been
+loaded e.g. after the `onload` event.
+
+The `payper:precache` event expects the `payload` to be a `url` that contains
+all the bundles that need to be cached.
+
+```js
+navigator.serviceWorker.ready.then(function ready(sw) {
+  sw.active.postMessage({
+    type: 'payper:precache',
+    payload: '/payper/radio@1.2.9/checkbox@1.3.8/button@1.3.9/grid@1.3.9/accordion@23.3.0'
+  });
+});
+```
 
 ### Integrating into an existing ServiceWorker setup
 

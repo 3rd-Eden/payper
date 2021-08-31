@@ -12,7 +12,7 @@ const suffix = `
 ;if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
   navigator.serviceWorker.ready.then(function ready(sw) {
     sw.active.postMessage({
-      type: 'payper:paste',
+      type: 'payper:raw',
       payload: __PAYPER_IFFE_BUNDLE_WRAPPER__.toString()
     });
   });

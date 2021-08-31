@@ -174,7 +174,7 @@ describe('Payper Server', function () {
         end: function (contents) {
           assume(writtenHead.code).equals(200);
           assume(writtenHead.headers['Content-Type']).equals('text/javascript');
-          assume(writtenHead.headers['Content-Length']).equals(406);
+          assume(writtenHead.headers['Content-Length']).equals(404);
 
           assume(contents).includes(prefix);
           assume(contents).includes(suffix);

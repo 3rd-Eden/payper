@@ -108,7 +108,7 @@ class PayperWorker {
       // HTTP request the response will include this "postMessage" call to the
       // ServiceWorker with contents of the bundle so it can be cached.
       //
-      case 'payper:paste':
+      case 'payper:raw':
         const fresh = this.parse(data.payload);
         event.waitUntil(this.cache.fill(fresh));
       break;
