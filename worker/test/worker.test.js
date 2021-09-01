@@ -51,6 +51,7 @@ describe('Payper Service Worker', function () {
       registration: {
         scope: 'http://example.com/'
       },
+      addEventListener: () => {},
       skipWaiting: () => {},
       clients: {
         claim: () => {}
@@ -104,9 +105,38 @@ describe('Payper Service Worker', function () {
         }
       });
     });
+
+    it('assigns lifecycle events', function () {
+      const listeners = [];
+
+      global.self.addEventListener = function (method) {
+        listeners.push(method);
+      };
+
+      payper.register();
+      assume(listeners).deep.equal(['fetch', 'activate', 'install', 'message']);
+    });
+
+    it('controls which lifecycle handlers are assigned', function () {
+      const listeners = [];
+
+      global.self.addEventListener = function (method) {
+        listeners.push(method);
+      };
+
+      payper.register(['fetch', 'message']);
+      assume(listeners).deep.equal(['fetch', 'message']);
+    });
   });
 
   describe('Message API', function () {
+    it('ignores unknown events', function () {
+      payper.message({ data: {
+        type: 'payper:uwu',
+        payload: 'uwu'
+      }});
+    });
+
     describe('payper:raw', function () {
       it('stores the raw response', function (done) {
         const next = assume.plan(4, done);
@@ -369,13 +399,14 @@ describe('Payper Service Worker', function () {
       });
 
       global.fetch = function () {
-        const { content, bundle,name,version } = fetchResponses.shift();
-        const meta = `/*! Payper meta(${JSON.stringify({ bundle, name, version, cache: true })}) */`
+        const responses = fetchResponses.map(({ content, bundle,name, version, cache }) => {
+          const meta = `/*! Payper meta(${JSON.stringify({ bundle, name, version, cache: !!cache })}) */`
+          return [content, meta].join('\n')
+        });
 
         return Promise.resolve(new Response([
           prefix,
-          content,
-          meta,
+          responses.join('\n'),
           suffix,
         ].join('\n')));
       }
@@ -434,7 +465,8 @@ describe('Payper Service Worker', function () {
         content: 'This is a fetched result',
         name: 'fetched-result',
         version: '1.2.3',
-        bundle: 'fetched-result@1.2.3'
+        bundle: 'fetched-result@1.2.3',
+        cache: false
       });
 
       const response = await payper.concat({
@@ -461,6 +493,48 @@ describe('Payper Service Worker', function () {
       assume(response.blob.data[0]).includes('This is a fetched result');
     });
 
+    it('merges multiple fetched response', async function () {
+      fetchResponses.push({
+        content: 'This is a fetched result',
+        name: 'fetched-result',
+        version: '1.2.3',
+        bundle: 'fetched-result@1.2.3',
+        cache: false
+      });
+
+      fetchResponses.push({
+        content: 'This content is different',
+        name: 'fetched-another',
+        version: '1.2.3',
+        bundle: 'fetched-another@1.2.3',
+        cache: false
+      });
+
+      const response = await payper.concat({
+        request: {
+          url: 'http://www.example.com/payper/fetched-result@1.2.3/fetched-another@1.2.3',
+          method: 'GET'
+        },
+        waitUntil: () => {}
+      });
+
+      assume(response instanceof Response).is.true();
+
+      //
+      // Non standard api usage, just our polyfill to readout data
+      //
+      assume(response.status).equals(200);
+      assume(response.statusText).equals('OK');
+      assume(response.headers.get('Content-Type')).equals(payper.settings.type);
+
+      //
+      // Assert the correct order of responses
+      //
+      assume(response.blob.data).is.length(2);
+      assume(response.blob.data[0]).includes('This is a fetched result');
+      assume(response.blob.data[1]).includes('This content is different');
+    });
+
     it('includes Server-Timing headers', async function () {
       const response = await payper.concat({
         request: {
@@ -471,7 +545,9 @@ describe('Payper Service Worker', function () {
       });
 
       const timing = response.headers.get('Server-Timing');
-      assume(timing).equals('requested;desc="cached@1.2.3";dur=0,fetched;desc="none";dur=0,cached;desc="cached@1.2.3";dur=0');
+      assume(timing).includes('requested;desc="cached@1.2.3"')
+      assume(timing).includes('fetched;desc="none"');
+      assume(timing).includes('cached;desc="cached@1.2.3"');
     });
   });
 });
