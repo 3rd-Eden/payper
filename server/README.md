@@ -22,6 +22,14 @@ Once you've imported the API in your server-side code you can create a new
 const payper = new Payper();
 ```
 
+The instances accepts an `Object` with the following properties for further
+customization.
+
+- `path` Name of the path that your want the server to be registered on.
+  Defaults to `payper`, so it intercepts requests from `/payper/` based paths.
+- `logger` A logger object that follows the `console` API. Defaults to
+  `console`.
+
 ### Adding bundles to the system
 
 Now that the `Payper` instance has been created it needs to know which bundles
