@@ -8,7 +8,6 @@ describe('Payper Service Worker', function () {
   let payper;
 
   global.caches = global.caches || new CacheStorage();
-  global.location = 'http://example.com/sw.js';
 
   global.Blob = class Blob {
     constructor(data, options) {
@@ -18,14 +17,40 @@ describe('Payper Service Worker', function () {
   };
 
   global.Response = class Response {
-    constructor(blob, options) {
-      this.blob = blob;
+    constructor(blob, options = {}) {
+      Object.keys(options).forEach(key => this[key] = options[key]);
+
+      this.blob = blob instanceof Blob ? blob : new Blob(blob);
+      this.headers = new Map();
       this.options = options;
+
+      if ('headers' in options) {
+        Object.keys(options.headers).forEach(key => this.headers.set(key, options.headers[key]));
+      }
+    }
+
+    text() {
+      return Promise.resolve(Array.isArray(this.blob.data)
+        ? this.blob.data.join('')
+        : this.blob.data
+      );
+    }
+
+    clone() {
+      return new Response(this.blob, this.options);
     }
   };
 
   beforeEach(function () {
+    global.location = 'http://example.com/sw.js';
+    global.fetch = function fetch() {
+      throw new Error('A test should polyfill this');
+    };
+
     global.self = {
+      registration: {
+        scope: 'http://example.com/'
+      },
       skipWaiting: () => {},
       clients: {
         claim: () => {}
@@ -83,11 +108,52 @@ describe('Payper Service Worker', function () {
 
   describe('Message API', function () {
     describe('payper:raw', function () {
-      it('stores the raw response')
+      it('stores the raw response', function (done) {
+        const next = assume.plan(4, done);
+
+        payper.parse = function (payload) {
+          assume(payload).equals('this is the payload');
+
+          return { hello: 'world' }
+        };
+
+        payper.cache.fill = function (fresh) {
+          assume(fresh).is.a('object');
+          assume(fresh).is.length(1);
+          assume(fresh.hello).equals('world');
+
+          next();
+        };
+
+        payper.message({ data: {
+          type: 'payper:raw',
+          payload: 'this is the payload'
+        }});
+      });
     });
 
     describe('payper:precache', function () {
-      it('requests the url');
+      it('requests the url & caches the result', function (done) {
+        const next = assume.plan(4, done);
+
+        payper.request = function (url) {
+          assume(url).equals('http://www.example.com/payper/foo@bar');
+          return { fetched: { foo: 'bar' } }
+        };
+
+        payper.cache.fill = function fill(fetched) {
+          assume(fetched).is.a('object');
+          assume(fetched).is.length(1);
+          assume(fetched.foo).equals('bar');
+
+          next();
+        };
+
+        payper.message({ data: {
+          type: 'payper:precache',
+          payload: 'http://www.example.com/payper/foo@bar'
+        }});
+      });
     })
   });
 
@@ -191,8 +257,8 @@ describe('Payper Service Worker', function () {
 
       const response = chunk.response;
 
-      assume(response.options.status).equals(200);
-      assume(response.options.statusText).equals('OK');
+      assume(response.status).equals(200);
+      assume(response.statusText).equals('OK');
 
       const blob = response.blob;
 
@@ -251,8 +317,8 @@ describe('Payper Service Worker', function () {
 
       const response = chunk.response;
 
-      assume(response.options.status).equals(200);
-      assume(response.options.statusText).equals('OK');
+      assume(response.status).equals(200);
+      assume(response.statusText).equals('OK');
 
       const blob = response.blob;
 
@@ -269,14 +335,143 @@ describe('Payper Service Worker', function () {
 
       const response2 = chunk2.response;
 
-      assume(response2.options.status).equals(200);
-      assume(response2.options.statusText).equals('OK');
+      assume(response2.status).equals(200);
+      assume(response2.statusText).equals('OK');
 
       const blob2 = response2.blob;
 
       assume(blob2.options.type).equals('text/javascript');
       assume(blob2.data[0]).includes('/*! Payper meta({"name":"bar","version":"0.0.0","cache":false}) */');
       assume(blob2.data[0]).includes(`['group', '404: Could not find the requested bundle '+ "bar@0.0.0"]`);
+    });
+  });
+
+  describe('Response delivery', function () {
+    let fetchResponses;
+    beforeEach(async function () {
+      fetchResponses = [];
+
+      await payper.cache.fill({
+        'cached@1.2.3': {
+          name: 'cache',
+          version: '1.2.3',
+          bundle: 'cached@1.2.3',
+          cache: true,
+          response: new Response('This value was previously cached')
+        },
+        'another-cached@2.2.3': {
+          name: 'another',
+          version: '2.2.3',
+          bundle: 'another-cached@2.2.3',
+          cache: true,
+          response: new Response('Another cached value, but different')
+        }
+      });
+
+      global.fetch = function () {
+        const { content, bundle,name,version } = fetchResponses.shift();
+        const meta = `/*! Payper meta(${JSON.stringify({ bundle, name, version, cache: true })}) */`
+
+        return Promise.resolve(new Response([
+          prefix,
+          content,
+          meta,
+          suffix,
+        ].join('\n')));
+      }
+    });
+
+    it('returns cached response', async function () {
+      const response = await payper.concat({
+        request: {
+          url: 'http://www.example.com/payper/cached@1.2.3',
+          method: 'GET'
+        },
+        waitUntil: () => {}
+      });
+
+      assume(response instanceof Response).is.true();
+
+      //
+      // Non standard api usage, just our polyfill to readout data
+      //
+      assume(response.status).equals(200);
+      assume(response.statusText).equals('OK');
+      assume(response.headers.get('Content-Type')).equals(payper.settings.type);
+
+      assume(response.blob.data).is.length(1);
+      assume(response.blob.data[0]).equals('This value was previously cached');
+    });
+
+    it('returns merges multiple cached responses', async function () {
+      const response = await payper.concat({
+        request: {
+          url: 'http://www.example.com/payper/cached@1.2.3/another-cached@2.2.3',
+          method: 'GET'
+        },
+        waitUntil: () => {}
+      });
+
+      assume(response instanceof Response).is.true();
+
+      //
+      // Non standard api usage, just our polyfill to readout data
+      //
+      assume(response.status).equals(200);
+      assume(response.statusText).equals('OK');
+      assume(response.headers.get('Content-Type')).equals(payper.settings.type);
+
+      //
+      // Assert the correct order of responses
+      //
+      assume(response.blob.data).is.length(2);
+      assume(response.blob.data[0]).equals('This value was previously cached');
+      assume(response.blob.data[1]).equals('Another cached value, but different');
+    });
+
+    it('returns fetched response', async function () {
+      fetchResponses.push({
+        content: 'This is a fetched result',
+        name: 'fetched-result',
+        version: '1.2.3',
+        bundle: 'fetched-result@1.2.3'
+      });
+
+      const response = await payper.concat({
+        request: {
+          url: 'http://www.example.com/payper/fetched-result@1.2.3',
+          method: 'GET'
+        },
+        waitUntil: () => {}
+      });
+
+      assume(response instanceof Response).is.true();
+
+      //
+      // Non standard api usage, just our polyfill to readout data
+      //
+      assume(response.status).equals(200);
+      assume(response.statusText).equals('OK');
+      assume(response.headers.get('Content-Type')).equals(payper.settings.type);
+
+      //
+      // Assert the correct order of responses
+      //
+      assume(response.blob.data).is.length(1);
+      assume(response.blob.data[0]).includes('This is a fetched result');
+    });
+
+    it('includes Server-Timing headers', async function () {
+      const response = await payper.concat({
+        request: {
+          url: 'http://www.example.com/payper/cached@1.2.3',
+          method: 'GET'
+        },
+        waitUntil: () => {}
+      });
+
+      const timing = response.headers.get('Server-Timing');
+      assume(timing).equals('requested;desc="cached@1.2.3";dur=0,fetched;desc="none";dur=0,cached;desc="cached@1.2.3";dur=0');
     });
   });
 });

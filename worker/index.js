@@ -377,7 +377,7 @@ PayperWorker.iffe = /^\(?function __PAYPER_IFFE_BUNDLE_WRAPPER__\(\)\s\{/;
  * @type {RegExp}
  * @private
  */
-PayperWorker.comment = /\/\*! Payper meta\(["{}:,\._\-a-z0-9]+\) \*\//i;
+PayperWorker.comment = /\/\*! Payper meta\(["{}:,\._\@\-a-z0-9]+\) \*\//i;
 
 //
 // Expose the worker interface so it can be consumed by test suites.
