@@ -101,6 +101,7 @@ To make this work we'll be using the following API methods:
 
 - [matches](#matches)
 - [concat](#concat)
+- [stream](#stream)
 - [intercept](#intercept)
 
 #### matches
@@ -136,13 +137,47 @@ set to `text/javascript` in order to correctly executed in the browser.
 const response = await payper.concat(request);
 ```
 
+#### stream
+
+```js
+const stream = payper.stream(request);
+return stream.pipe(response);
+```
+
+The stream that is returned is not gzipped, if you want to further compress
+the response you can pipe the stream into a gzip, deflate, or brotli
+compression stream using Node.js build-in `zlib` library:
+
+```js
+const zlib = require('zlib');
+
+http.createServer(function example(req, res) {  
+  if (!payper.matches(req)) return res.writeHead(404).end('nope');
+
+  res.writeHead(200, {
+    'Content-Type': 'text/javascript',
+    'Content-Encoding': 'brotli'
+  });
+
+  const stream = payper.stream(req);
+
+  //
+  // Note: we're just blindly returning a brotli stream here, normally you
+  // would parse the Accept-Encoding header from the request and return a
+  // matching compression stream. This is merely an example of how you
+  // compress the response.
+  //
+  return stream.pipe(zlib.createBrotliCompress()).pipe(res);
+}
+```
+
 #### intercept
 
 This is a combination of both methods, but writes the response. This is only
-meant for **development** purposes as this function is **not optimized for
+meant for **development** purposes as this function is **not optimised for
 production**. It simply writes the `response` from the [concat](#concat) method
 and sets a `200` statusCode, but it's a great way to just get started. The
-method accepts the incomming HTTP rquest and out outgoing HTTP response as
+method accepts the incoming HTTP request and out outgoing HTTP response as
 arguments. It returns a `boolean` as indicator if the request is intercepted.
 
 ```js
@@ -276,6 +311,81 @@ fastify.get('/payper/*', async intercept(request, reply) {
 
 A working version of these, and many other examples can be found in our
 [Sandbox Application][sandbox].
+
+## Edge
+
+The Payper Server was designed to be as lightweight and flexible as possible.
+This allows it to be used in various of Lambda, EdgeWorkers, Cloud functions
+<insert more serverless buzzword> environments as well.
+
+The following examples will provides some insight in how easy it could be to
+run this service on the Edge to further improve the response times to your
+users.
+
+Note that we're only demonstrating the handler/worker implementations here.
+Most of these examples require addition routing to be setup as part of
+the HTTP handling. We're making the assumption that these workers are assigned
+to handle the `/payper/*` routes.
+
+### AWS Lambda
+
+```js
+const { S3 } = require('@aws-sdk/client-s3');
+const Payper = require('payper/server');
+
+const payper = new Payper({ options });
+const client = new S3({...});
+
+//
+// Read the bundles from a S3 bucket so we return the contents.
+//
+payper.add(async function({ name, version }) {
+  const content = await client.getObject({
+    Bucket: 'MyBucketFullOfBundles',
+    Key: `${name}-${version}.js`
+  }));
+
+  return content.Body.toString();
+});
+
+exports.handler = async function handler({ path }) {
+  return {
+    statusCode: 200
+    body: await payper.concat(path)
+  }
+}
+```
+
+### Akamai EdgeWorkers
+
+```js
+const { createResponse } = require('create-response');
+const { EdgeKV } = require('./edgekv.js');
+const Payper = require('payper/server');
+
+const payper = new Payper({ options });
+const edgeKv = new EdgeKV({
+  namespace: 'default',
+  group: 'bundles'
+});
+
+//
+// Use the EdgeKV offering to retrieve the stored bundles.
+//
+payper.add(async function({ name, version }) {
+  const content = await edgeKv.getText({ item: `${name}-${version}` });
+
+  return content;
+});
+
+export async function responseProvider(request) {
+  const bundles = await payper.concat(request.path);
+
+  return return Promise.resolve(createResponse(200, {
+    'Content-Type': ['text/javascript']
+  }, bundles));
+};
+```
 
 [install]: https://github.com/3rd-Eden/payper#installation
 [sandbox]: https://github.com/3rd-Eden/payper/tree/main/sandbox

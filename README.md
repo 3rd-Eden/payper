@@ -37,15 +37,13 @@ In addition to those projects we also host:
 
 - [Development Sandbox][sandbox] Our sandbox application which runs
   various frameworks which showcases different integration patterns.
-- [Edge/Lambda/Cloud functions][edge] Integration for Lambda, Edge,
-  serverless buzzword (development in-progress).
 
 ## Use case
 
-- **Cascading Cache Invalidation** 
+- **Cascading Cache Invalidation**
 
 It only takes one code change to completely invalidate all your bundled code
-forcing your users to re-download 
+forcing your users to re-download
 
 - **Only download what you use**
 
@@ -114,7 +112,6 @@ the bundle that cause the 500 response have also been logged on the server. If
 you do not have a `logger` configured on the server it will automatically be
 written to `STDERR` using `console.error`.
 
-[edge]: ./edge
 [server]: ./serve/
 [worker]: ./worker
 [sandbox]: ./sandbox

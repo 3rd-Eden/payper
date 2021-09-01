@@ -4,7 +4,6 @@ If you see this message it means that you have imported 'payper' directly
 instead importing the package that you actually need. Try to importing one of
 the following packages instead:
 
-   - require('payper/edge')
    - require('payper/server')
    - require('payper/worker')
 

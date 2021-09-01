@@ -5,8 +5,7 @@
   "main": "index.js",
   "exports": {
     "./worker": "./worker/index.js",
-    "./server": "./server/index.js",
-    "./edge": "./edge/index.js"
+    "./server": "./server/index.js"
   },
   "scripts": {
     "test": "c8 mocha '{,+(worker|server|utils)/**/}*.test.js'"
