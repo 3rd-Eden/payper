@@ -10,6 +10,14 @@ describe('Payper Server', function () {
     payper = new Payper();
   });
 
+  describe('Server configuration', function () {
+    it('configures a logger', function () {
+      assume(payper.logger).equals(console);
+
+      payper.logger.error('Dont be alarmed, the console message is intentional', new Error('example'));
+    });
+  });
+
   describe('Bundle Registration', function () {
     it('throws an error on duplicate bundle names', function () {
       payper.add('vendor', function () {});
@@ -74,7 +82,7 @@ describe('Payper Server', function () {
 
     it('can evaluate the failed bundle console blob', async function () {
       payper.add('foo', async function handler({ version }) {
-        throw new Error('this is going to break');
+        throw new Error('This thrown error is intentional, it should appear in your test output');
       });
 
       const result = await payper.concat('/payper/foo@1.2.9');
@@ -128,7 +136,7 @@ describe('Payper Server', function () {
 
     it('returns a console blob when the handler throws an error', async function () {
       payper.add('foo', async function handler({ version }) {
-        throw new Error('Simulating a failed handler');
+        throw new Error('This thrown error is intentional, it should appear in your test output');
       });
 
       const result = await payper.concat('/payper/foo@1.2.9');
@@ -136,7 +144,7 @@ describe('Payper Server', function () {
       assume(result).is.a('string');
       assume(result).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":false}) */');
       assume(result).includes('500: An error occured while loading bundle');
-      assume(result).includes('Simulating a failed handler');
+      assume(result).includes('This thrown error is intentional, it should appear in your test output');
       assume(result).includes('https://github.com/3rd-Eden/payper/tree/main/api#failure');
     });
   });

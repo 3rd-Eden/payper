@@ -20,9 +20,10 @@ class PayperServer {
    * @param {String} path The path the `payper/server` is working on.
    * @private
    */
-  constructor({ path='payper' } = {}) {
+  constructor({ path='payper', logger=console } = {}) {
     this.bundles = new Map();
 
+    this.logger = logger;
     this.missing = missing;
     this.failure = failure;
     this.extract = extract.bind(path);
@@ -163,6 +164,8 @@ class PayperServer {
           contents = await asterisk({ name, version, bundle });
         }
       } catch (e) {
+        this.logger.error('Failed to generate the contents of bundle'+ bundle, e);
+
         contents = await this.failure({ name, version, bundle, error: e.message });
         meta = this.meta({ name, version, cache: false });
       }
