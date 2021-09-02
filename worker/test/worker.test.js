@@ -412,6 +412,21 @@ describe('Payper Service Worker', function () {
       }
     });
 
+    it('includes Server-Timing headers', async function () {
+      const response = await payper.concat({
+        request: {
+          url: 'http://www.example.com/payper/cached@1.2.3',
+          method: 'GET'
+        },
+        waitUntil: () => {}
+      });
+
+      const timing = response.headers.get('Server-Timing');
+      assume(timing).includes('requested;desc="cached@1.2.3"')
+      assume(timing).includes('fetched;desc="none"');
+      assume(timing).includes('cached;desc="cached@1.2.3"');
+    });
+
     it('returns cached response', async function () {
       const response = await payper.concat({
         request: {
@@ -429,6 +444,14 @@ describe('Payper Service Worker', function () {
       assume(response.status).equals(200);
       assume(response.statusText).equals('OK');
       assume(response.headers.get('Content-Type')).equals(payper.settings.type);
+
+      //
+      // Verify how the response was assembled
+      //
+      const timing = response.headers.get('Server-Timing');
+      assume(timing).includes('requested;desc="cached@1.2.3"');
+      assume(timing).includes('fetched;desc="none"');
+      assume(timing).includes('cached;desc="cached@1.2.3"');
 
       assume(response.blob.data).is.length(1);
       assume(response.blob.data[0]).equals('This value was previously cached');
@@ -451,6 +474,14 @@ describe('Payper Service Worker', function () {
       assume(response.status).equals(200);
       assume(response.statusText).equals('OK');
       assume(response.headers.get('Content-Type')).equals(payper.settings.type);
+
+      //
+      // Verify how the response was assembled
+      //
+      const timing = response.headers.get('Server-Timing');
+      assume(timing).includes('requested;desc="cached@1.2.3,another-cached@2.2.3"');
+      assume(timing).includes('fetched;desc="none"');
+      assume(timing).includes('cached;desc="cached@1.2.3,another-cached@2.2.3"');
 
       //
       // Assert the correct order of responses
@@ -485,6 +516,14 @@ describe('Payper Service Worker', function () {
       assume(response.status).equals(200);
       assume(response.statusText).equals('OK');
       assume(response.headers.get('Content-Type')).equals(payper.settings.type);
+
+      //
+      // Verify how the response was assembled
+      //
+      const timing = response.headers.get('Server-Timing');
+      assume(timing).includes('requested;desc="fetched-result@1.2.3"');
+      assume(timing).includes('fetched;desc="fetched-result@1.2.3"');
+      assume(timing).includes('cached;desc="none"');
 
       //
       // Assert the correct order of responses
@@ -528,6 +567,14 @@ describe('Payper Service Worker', function () {
       assume(response.headers.get('Content-Type')).equals(payper.settings.type);
 
       //
+      // Verify how the response was assembled
+      //
+      const timing = response.headers.get('Server-Timing');
+      assume(timing).includes('requested;desc="fetched-result@1.2.3,fetched-another@1.2.3"');
+      assume(timing).includes('fetched;desc="fetched-result@1.2.3,fetched-another@1.2.3"');
+      assume(timing).includes('cached;desc="none"');
+
+      //
       // Assert the correct order of responses
       //
       assume(response.blob.data).is.length(2);
@@ -535,19 +582,56 @@ describe('Payper Service Worker', function () {
       assume(response.blob.data[1]).includes('This content is different');
     });
 
-    it('includes Server-Timing headers', async function () {
+    it('merges fetched and cached results', async function () {
+      fetchResponses.push({
+        content: 'This is a fetched result',
+        name: 'fetched-result',
+        version: '1.2.3',
+        bundle: 'fetched-result@1.2.3',
+        cache: false
+      });
+
+      fetchResponses.push({
+        content: 'This content is different',
+        name: 'fetched-another',
+        version: '1.2.3',
+        bundle: 'fetched-another@1.2.3',
+        cache: false
+      });
+
       const response = await payper.concat({
         request: {
-          url: 'http://www.example.com/payper/cached@1.2.3',
+          url: 'http://www.example.com/payper/fetched-result@1.2.3/cached@1.2.3/fetched-another@1.2.3/another-cached@2.2.3',
           method: 'GET'
         },
         waitUntil: () => {}
       });
 
+      assume(response instanceof Response).is.true();
+
+      //
+      // Non standard api usage, just our polyfill to readout data
+      //
+      assume(response.status).equals(200);
+      assume(response.statusText).equals('OK');
+      assume(response.headers.get('Content-Type')).equals(payper.settings.type);
+
+      //
+      // Verify how the response was assembled
+      //
       const timing = response.headers.get('Server-Timing');
-      assume(timing).includes('requested;desc="cached@1.2.3"')
-      assume(timing).includes('fetched;desc="none"');
-      assume(timing).includes('cached;desc="cached@1.2.3"');
-    });
+      assume(timing).includes('requested;desc="fetched-result@1.2.3,cached@1.2.3,fetched-another@1.2.3,another-cached@2.2.3"');
+      assume(timing).includes('fetched;desc="fetched-result@1.2.3,fetched-another@1.2.3"');
+      assume(timing).includes('cached;desc="cached@1.2.3,another-cached@2.2.3"');
+
+      //
+      // Assert the correct order of responses
+      //
+      assume(response.blob.data).is.length(4);
+      assume(response.blob.data[0]).includes('This is a fetched result');
+      assume(response.blob.data[1]).equals('This value was previously cached');
+      assume(response.blob.data[2]).includes('This content is different');
+      assume(response.blob.data[3]).equals('Another cached value, but different');
+    })
   });
 });
