@@ -1,6 +1,6 @@
 require('@babel/register')({
   'presets': ['@babel/preset-react'],
-  only: [/sandbox\/components/]
+  'only': [/sandbox[\\\/]components/]
 });
 
 const bootstrap = require('./bootstrap');
