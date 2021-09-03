@@ -1,5 +1,5 @@
 const { describe, it, beforeEach } = require('mocha');
-const { prefix, suffix } = require('../iffe.js');
+const { prefix, suffix } = require('../iife.js');
 const Payper = require('../index.js');
 const assume = require('assume');
 

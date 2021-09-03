@@ -32,7 +32,4 @@ function Definition({ name, desc }) {
   );
 }
 
-module.exports = {
-  Configuration: Configuration,
-  Definition: Definition
-};
+module.exports = Configuration;

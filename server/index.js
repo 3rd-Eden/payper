@@ -1,6 +1,6 @@
 const extract = require('../utils/extract.js');
 const matches = require('../utils/matches.js');
-const { prefix, suffix } = require('./iffe');
+const { prefix, suffix } = require('./iife');
 const missing = require('./missing.js');
 const failure = require('./failure.js');
 const { Readable } = require('stream');

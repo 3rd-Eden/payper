@@ -1,4 +1,4 @@
-const { suffix, prefix } = require('../../server/iffe');
+const { suffix, prefix } = require('../../server/iife');
 const { describe, it, beforeEach } = require('mocha');
 const CacheStorage = require('./cachestorage');
 const Payper = require('../index.js');

@@ -1,20 +1,15 @@
+const { dependencies } = require('./externals');
 const path = require('path');
 
 module.exports = {
-  mode: 'production',
+  mode: 'development',
 
   //
   // Generate the entry object by iterating over the standalone bundles that we
   // want to expose to our users. We're going to expose these libraries as
   // globals on the page where the name of library is also their global name.
   //
-  entry: [
-    'url-parse',
-    'koekiemonster',
-    'eventemitter3',
-    'react',
-    'react-dom'
-  ].reduce(function reduce(entry, name) {
+  entry: dependencies.reduce(function reduce(entry, name) {
     entry[name] = {
       import: require.resolve(name),
       library: { type: 'umd', name }

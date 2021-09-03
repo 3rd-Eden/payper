@@ -1,5 +1,5 @@
-const { describe, it, beforeEach } = require('mocha');
 const CacheStorage = require('./cachestorage');
+const { describe, it } = require('mocha');
 const Cache = require('../cache.js');
 const assume = require('assume');
 

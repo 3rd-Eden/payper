@@ -10,5 +10,5 @@ const fastify = require('./fastify');
 //
 // Initialize the different frameworks we're running our examples on.
 //
-bootstrap(express);
-bootstrap(fastify);
+bootstrap(express, 3210);
+bootstrap(fastify, 3211);
