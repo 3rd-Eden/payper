@@ -36,6 +36,12 @@ function nukeCache(e) {
   });
 }
 
+/**
+ * Deletes a single bundle from the cache.
+ *
+ * @param {String} name The name of the bundle we should nuke.
+ * @private
+ */
 function nukeBundle(name, e) {
   if (e) e.preventDefault();
 
@@ -47,6 +53,7 @@ function nukeBundle(name, e) {
 /**
  * Displays the current state of our service worker.
  *
+ * @param {Object} props Props.
  * @constructor
  */
 function ServiceWorker(props) {
@@ -82,10 +89,23 @@ function ServiceWorker(props) {
           <dd>
             {
               props.cached.split(',').map((name) =>
-                name === "none" ? name : <span className="chip" key={ name }>
-                  { name }
-                  <a href="#" onClick={ (e) => nukeBundle(name, e) } className="btn btn-clear" aria-label="Close" role="button"></a>
-                </span>
+                name === "none" ? name : (
+                  <span
+                    key={ name }
+                    className="tooltip"
+                    data-tooltip={`Removes ${name} from cache.`}
+                  >
+                  <span className="chip tooltip">
+                    { name }
+                    <a href="#"
+                      onClick={ (e) => nukeBundle(name, e) }
+                      className="btn btn-clear"
+                      aria-label="Close"
+                      role="button">
+                    </a>
+                  </span>
+                  </span>
+                )
               )
             }
           </dd>
