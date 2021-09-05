@@ -4,3 +4,5 @@ node_modules
 *.tgz
 *.test.js
 .tern-port
+coverage
+test
