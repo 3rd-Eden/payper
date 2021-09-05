@@ -1,9 +1,9 @@
 # Payper
 
 Payper is a bundle loading strategy that is designed to promote re-use of
-smaller bundles across pages. It tries to solve the problem where you want to
+(smaller) bundles across pages. It tries to solve the problem where you want to
 bundle only the code that is used on the page (pay for what you use) but still
-leverage the previously cached code without having to re-bundle it.
+leverage the code that was loaded on previous pages without having to re-bundle it.
 
 Payper provides a HTTP API that will automatically concatenate multiple bundles
 into a single HTTP request. This HTTP request is then intercepted by our Service
@@ -60,8 +60,27 @@ a single file would be loaded again. There is still a lot of overhead involved
 with just serving plain files, and bundling is still considered the more
 performant option.
 
-#### Unopinionated about your bundling process
-We want to focus specifically on the delivery aspect of your bundles.
+## Bundles
+
+Payper is unopinionated about your bundling process. It doesn't matter which
+tools you use, WebPack, Rollup, Parcel, O.G. file concatenation. It will just
+bundle it together with the rest of the requested bundles and execute it in the 
+specified order. The only **hard requirement** that we do impose on your bundle 
+are filename restrictions.
+
+- **The file name follows the npm package name like naming convention** The name
+  ends up being part of an URL and therefor must use URL-safe characters. A `@`
+  might only be used for package scope `@scope/package-name`.
+
+Having that said we do offer some recommendations when bundling code:
+
+- **Create a bundle of each shared dependency** Smaller bundles means less cache
+  needs to be invalidated when code changes. But it also means you're loading
+  less bytes that you might not need on your page.
+- **Be mindful of hashing** While hashing or fingerprinting is a great way to
+  invalidate cache, it can also cause cascading cache invalidation your require
+  statements might reference the name of hashed file that no longer exits,
+  forcing those files to also be invalidated while nothing has changed code-wise.
 
 ## Debugging
 
