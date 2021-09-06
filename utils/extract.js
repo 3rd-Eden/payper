@@ -16,27 +16,15 @@
  * @public
  */
 module.exports = function extract(url) {
-  return (url.split(`/${this}/`).pop() || '').split('/')
-  .map(function parse(bundle) {
-    if (!bundle) return;
+  const pathnames = (url.split(`/${this}/`).pop() || '');
+  const matcher = /((?:@[^/@]+\/)?[^/@]+)(?:@([^/]+))?/g;
+  const bundles = [];
+  let match;
 
-    //
-    // We need to cautious with version parsing here. If for some case we have
-    // a bundle with an `@` in the name we don't want to mistake it for
-    // a version pair. So the assumption we make is that the last @ that we
-    // encounter in the string is the version separator as it's less likely
-    // that this character would appear in a version string (e.g a semver or
-    // a fingerprint/hash of the bundle).
-    //
-    const lastIndex = bundle.lastIndexOf('@');
-    const versioned = !!~lastIndex;
+  while ((match = matcher.exec(pathnames)) !== null) {
+    const [bundle, name, version] = match;
+    bundles.push({ name, version, bundle });
+  }
 
-    return {
-      name: bundle.slice(0,  versioned ? lastIndex : bundle.length),
-      version: versioned ? bundle.slice(lastIndex +1) : '',
-      bundle
-    };
-  })
-  .filter(Boolean);
+  return bundles;
 }
-
