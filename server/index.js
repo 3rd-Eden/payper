@@ -182,7 +182,12 @@ class PayperServer {
         meta = this.meta({ name, version, cache: false });
       }
 
-      return [contents, meta].join('\n');
+      //
+      // Force an addition \n after the meta, just make it clear when inspecting
+      // the generated bundles where the bundles end. Spending 1 new-line to
+      // improve readability of the code is a fine trade-off.
+      //
+      return [contents, meta, ''].join('\n');
     }
 
     return requested.map(gatherSources);
