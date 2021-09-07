@@ -57,7 +57,7 @@ class PayperWorker {
 
     return Object.assign({
       type:'text/javascript',     // We're a JavaScript loader by default.
-      version:'0.0.0',            // Controlles the cache version.
+      version:'0.0.0',            // Controls the cache version.
       path:'payper',              // Path prefix.
       ttl:2.628e+9                // Month represented in ms.
     }, params, custom);
@@ -110,7 +110,7 @@ class PayperWorker {
       //
       case 'payper:raw':
         const fresh = this.parse(data.payload);
-        event.waitUntil(this.cache.fill(fresh));
+        event.waitUntil(this.cache.fill(fresh, data.base));
       break;
 
       //
@@ -119,7 +119,7 @@ class PayperWorker {
       //
       case 'payper:precache':
         const { fetched } = await this.request(data.payload);
-        if (fetched) event.waitUntil(this.cache.fill(fetched));
+        if (fetched) event.waitUntil(this.cache.fill(fetched, data.payload));
       break;
     }
 
@@ -201,8 +201,8 @@ class PayperWorker {
     //
     event.waitUntil(
       Promise.all([
-        this.cache.fill(data.fetched),
-        this.cache.hit(Object.keys(data.cached))
+        this.cache.fill(data.fetched, url),
+        this.cache.hit(Object.keys(data.cached), url)
       ])
     );
 
@@ -253,7 +253,7 @@ class PayperWorker {
     let now = Date.now();
 
     const requested = this.extract(url);
-    const cached = await this.cache.read(requested);
+    const cached = await this.cache.read(requested, url);
     const missing = requested.filter(({ bundle }) => !(bundle in cached));
     const timing = { cached: Date.now() - now };
 

@@ -182,7 +182,13 @@ describe('Payper Server', function () {
         end: function (contents) {
           assume(writtenHead.code).equals(200);
           assume(writtenHead.headers['Content-Type']).equals('text/javascript');
-          assume(writtenHead.headers['Content-Length']).equals(405);
+
+          //
+          // If you're looking why this test failed, it's most likely this line
+          // where we assert if all content is included in the response by
+          // looking at the content length.
+          //
+          assume(writtenHead.headers['Content-Length']).equals(435);
 
           assume(contents).includes(prefix);
           assume(contents).includes(suffix);

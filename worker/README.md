@@ -158,7 +158,13 @@ property should have the following format:
   // The payload that the event type expects, strings, objects, we impose no
   // limitations.
   //
-  payload: 'contents'
+  payload: 'contents',
+
+  //
+  // Domain name where the request comes from. Only used for interaction that
+  // doesn't pass in a domain name in any other way.
+  //
+  base: ''
 }
 ```
 
@@ -173,12 +179,14 @@ been installed yet. This allows us to eliminate a potential uncached response on
 the next request.
 
 The `payper:raw` event expects the `payload` property to be a `string` that
-contains the contents of the bundle.
+contains the contents of the bundle, and the `base` property to be set to the
+domain where the raw contents come from.
 
 ```js
 navigator.serviceWorker.ready.then(function ready(sw) {
   sw.active.postMessage({
     type: 'payper:raw',
+    base: document.baseURI,
     payload: __PAYPER_IFFE_BUNDLE_WRAPPER__.toString()
   });
 });
@@ -190,7 +198,7 @@ navigator.serviceWorker.ready.then(function ready(sw) {
 
 #### `payper:precache`
 
-Precache additional bundles so future requests can be served from cache
+Pre-cache additional bundles so future requests can be served from cache
 directly. This should only be done after all requests on your page have been
 loaded e.g. after the `onload` event.
 

@@ -13,6 +13,7 @@ const suffix = `
   navigator.serviceWorker.ready.then(function ready(sw) {
     sw.active.postMessage({
       type: 'payper:raw',
+      base: document.baseURI,
       payload: __PAYPER_IFFE_BUNDLE_WRAPPER__.toString()
     });
   });

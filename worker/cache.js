@@ -62,14 +62,15 @@ class CacheStorage {
    * Read all the requested items from the cache.
    *
    * @param {Array} requested Array with name/version objects.
+   * @param {String} base The base URL.
    * @returns {Object} All the responses.
    * @public
    */
-  async read(requested) {
+  async read(requested, base) {
     const cache = await caches.open(this.name);
 
     const bundles = await Promise.all(requested.map(async (data) => {
-      const response = await cache.match(this.format(data.bundle), matchOpts);
+      const response = await cache.match(this.format(data.bundle, base), matchOpts);
 
       if (!response) return;
       return { ...data, response };
@@ -86,13 +87,14 @@ class CacheStorage {
    * value is the current EPOCH so it can be used later for cache invalidation.
    *
    * @param {Array} bundles Array with bundle names to refresh.
+   * @param {String} base The base URL.
    * @public
    */
-  async hit(bundles) {
+  async hit(bundles, base) {
     const cache = await caches.open(this.name);
 
     bundles.map(async (bundle) => {
-      const url = this.format(bundle);
+      const url = this.format(bundle, base);
       const response = await cache.match(url, matchOpts);
 
       if (!response) return;
@@ -124,16 +126,17 @@ class CacheStorage {
    * assembling responses from the cache.
    *
    * @param {Object} bundles Object containing
+   * @param {String} base The base URL.
    * @public
    */
-  async fill(bundles) {
+  async fill(bundles, base) {
     const cache = await caches.open(this.name);
 
     await Promise.all(Object.keys(bundles).map((bundle) => {
       const chunk = bundles[bundle];
       if (!chunk.cache) return;
 
-      const url = this.format(bundle);
+      const url = this.format(bundle, base);
 
       chunk.response.headers.set('payper-hit', Date.now());
       return cache.put(url, chunk.response);
@@ -146,7 +149,7 @@ class CacheStorage {
    * storage.
    *
    * @param {Number} ttl The Time To Live of a given item in the cache in ms.
-   * @private
+   * @public
    */
   async invalidate(ttl) {
     const cache = await caches.open(this.name);

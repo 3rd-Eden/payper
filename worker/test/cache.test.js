@@ -4,12 +4,16 @@ const Cache = require('../cache.js');
 const assume = require('assume');
 
 describe('Payper Service Worker Cache', function () {
+  const base = 'http://example.com/wha/wha/wha';
+
   global.caches = global.caches || new CacheStorage();
+
   global.self = {
     registration: {
       scope: 'https://example.com'
     }
   };
+
   function item(bundle, cache=true) {
     const { name, version } = expand(bundle);
 
@@ -54,7 +58,7 @@ describe('Payper Service Worker Cache', function () {
             headers
           }
         }
-      });
+      }, base);
 
       assume(headers.get('payper-hit')).exists();
 
@@ -62,7 +66,7 @@ describe('Payper Service Worker Cache', function () {
         name: 'foo',
         version: 'bar',
         bundle: 'foo@bar'
-      }]);
+      }], base);
 
       assume(bundles).is.a('object');
       assume(bundles['foo@bar']).is.a('object');
@@ -89,7 +93,7 @@ describe('Payper Service Worker Cache', function () {
             headers
           }
         }
-      });
+      }, base);
 
       assume(headers.get('payper-hit')).does.not.exist();
 
@@ -97,7 +101,7 @@ describe('Payper Service Worker Cache', function () {
         name: 'foo',
         version: '1.2.3',
         bundle: 'foo@1.2.3'
-      }]);
+      }], base);
 
       assume(bundles).is.a('object');
       assume(bundles).is.length(0);
@@ -110,17 +114,17 @@ describe('Payper Service Worker Cache', function () {
       const smh234 = new Cache({ path: 'yolo', version: '2.3.4', type: 'smh/myhead' });
       const diff = new Cache({ path: 'yolo', version: '1.1.1', type: 'text/javascript' });
 
-      await smh123.fill(item('smh@1.2.3'));
-      await smh234.fill(item('another@1.2.3'));
-      await diff.fill(item('diff@1.2.3'));
+      await smh123.fill(item('smh@1.2.3'), base);
+      await smh234.fill(item('another@1.2.3'), base);
+      await diff.fill(item('diff@1.2.3'), base);
 
-      const smh123Item = await smh123.read([expand('smh@1.2.3')]);
+      const smh123Item = await smh123.read([expand('smh@1.2.3')], base);
       assume(smh123Item['smh@1.2.3']).is.a('object');
 
-      const smh234Item = await smh234.read([expand('another@1.2.3')]);
+      const smh234Item = await smh234.read([expand('another@1.2.3')], base);
       assume(smh234Item['another@1.2.3']).is.a('object');
 
-      const diff123Item = await diff.read([expand('diff@1.2.3')]);
+      const diff123Item = await diff.read([expand('diff@1.2.3')], base);
       assume(diff123Item['diff@1.2.3']).is.a('object');
 
       //
@@ -128,13 +132,13 @@ describe('Payper Service Worker Cache', function () {
       //
       await smh234.clean();
 
-      const smh123clean = await smh123.read([expand('smh@1.2.3')]);
+      const smh123clean = await smh123.read([expand('smh@1.2.3')], base);
       assume(smh123clean).is.length(0);
 
-      const smh234clean = await smh234.read([expand('another@1.2.3')]);
+      const smh234clean = await smh234.read([expand('another@1.2.3')], base);
       assume(smh234clean['another@1.2.3']).is.a('object');
 
-      const diff123clean = await diff.read([expand('diff@1.2.3')]);
+      const diff123clean = await diff.read([expand('diff@1.2.3')], base);
       assume(diff123clean['diff@1.2.3']).is.a('object');
     });
   });

@@ -139,7 +139,7 @@ describe('Payper Service Worker', function () {
 
     describe('payper:raw', function () {
       it('stores the raw response', function (done) {
-        const next = assume.plan(4, done);
+        const next = assume.plan(5, done);
 
         payper.parse = function (payload) {
           assume(payload).equals('this is the payload');
@@ -147,34 +147,37 @@ describe('Payper Service Worker', function () {
           return { hello: 'world' }
         };
 
-        payper.cache.fill = function (fresh) {
+        payper.cache.fill = function (fresh, base) {
           assume(fresh).is.a('object');
           assume(fresh).is.length(1);
           assume(fresh.hello).equals('world');
+          assume(base).equals('http://example.com/foo/bar');
 
           next();
         };
 
         payper.message({ data: {
           type: 'payper:raw',
-          payload: 'this is the payload'
+          payload: 'this is the payload',
+          base: 'http://example.com/foo/bar'
         }});
       });
     });
 
     describe('payper:precache', function () {
       it('requests the url & caches the result', function (done) {
-        const next = assume.plan(4, done);
+        const next = assume.plan(5, done);
 
         payper.request = function (url) {
           assume(url).equals('http://www.example.com/payper/foo@bar');
           return { fetched: { foo: 'bar' } }
         };
 
-        payper.cache.fill = function fill(fetched) {
+        payper.cache.fill = function fill(fetched, base) {
           assume(fetched).is.a('object');
           assume(fetched).is.length(1);
           assume(fetched.foo).equals('bar');
+          assume(base).equals('http://www.example.com/payper/foo@bar');
 
           next();
         };
@@ -396,7 +399,7 @@ describe('Payper Service Worker', function () {
           cache: true,
           response: new Response('Another cached value, but different')
         }
-      });
+      }, 'http://www.example.com/wha/wha/wha');
 
       global.fetch = function () {
         const responses = fetchResponses.map(({ content, bundle,name, version, cache }) => {

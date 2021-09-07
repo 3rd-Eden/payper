@@ -8,7 +8,10 @@
     "./server": "./server/index.js"
   },
   "scripts": {
-    "test": "c8 mocha '{,+(worker|server|utils)/**/}*.test.js'"
+    "test": "c8 mocha '{,+(worker|server|utils)/**/}*.test.js'",
+    "test:worker": "c8 mocha './worker/**/*.test.js'",
+    "test:server": "c8 mocha './server/**/*.test.js'",
+    "test:utils": "c8 mocha './utils/**/*.test.js'"
   },
   "repository": {
     "type": "git",
