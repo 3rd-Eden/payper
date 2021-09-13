@@ -66,6 +66,10 @@ to customize the inner workings of the worker.
   Defaults to `payper`, so it intercepts requests from `/payper/` based paths.
 - `type` The Content-Type of the bundles that we're handling.
   Defaults to `text/javascript`.
+- `root` Force a root domain under which all cache items are stored. By default
+  we use the hostname of the URL that was requested. But in certain cases, e.g.
+  when serve assets similar assets from different domains you might want to
+  force a root domain as that allows the cache to be shared between both.
 
 Now that you've created a new instance all you have to call is the
 `payper#register` method and it will automatically assign all the required event

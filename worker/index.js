@@ -59,7 +59,8 @@ class PayperWorker {
       type:'text/javascript',     // We're a JavaScript loader by default.
       version:'0.0.0',            // Controls the cache version.
       path:'payper',              // Path prefix.
-      ttl:2.628e+9                // Month represented in ms.
+      ttl:2.628e+9,               // Month represented in ms.
+      root: ''                    // Root domain we force our cache under.
     }, params, custom);
   }
 
@@ -93,6 +94,7 @@ class PayperWorker {
    */
   async message(event) {
     const { data } = event;
+    const { root } = this.settings;
 
     if (
        !data
@@ -110,7 +112,7 @@ class PayperWorker {
       //
       case 'payper:raw':
         const fresh = this.parse(data.payload);
-        event.waitUntil(this.cache.fill(fresh, data.base));
+        event.waitUntil(this.cache.fill(fresh, root || data.base));
       break;
 
       //
@@ -119,7 +121,7 @@ class PayperWorker {
       //
       case 'payper:precache':
         const { fetched } = await this.request(data.payload);
-        if (fetched) event.waitUntil(this.cache.fill(fetched, data.payload));
+        if (fetched) event.waitUntil(this.cache.fill(fetched, root || data.payload));
       break;
     }
 
@@ -186,6 +188,7 @@ class PayperWorker {
    * @public
    */
   async concat(event) {
+    const { root } = this.settings;
     const url = event.request.url;
     let data;
 
@@ -201,8 +204,8 @@ class PayperWorker {
     //
     event.waitUntil(
       Promise.all([
-        this.cache.fill(data.fetched, url),
-        this.cache.hit(Object.keys(data.cached), url)
+        this.cache.fill(data.fetched, root || url),
+        this.cache.hit(Object.keys(data.cached), root || url)
       ])
     );
 
@@ -252,8 +255,9 @@ class PayperWorker {
     let fetched = {};
     let now = Date.now();
 
+    const { root } = this.settings;
     const requested = this.extract(url);
-    const cached = await this.cache.read(requested, url);
+    const cached = await this.cache.read(requested, root || url);
     const missing = requested.filter(({ bundle }) => !(bundle in cached));
     const timing = { cached: Date.now() - now };
 
