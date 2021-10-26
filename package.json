@@ -1,6 +1,6 @@
 {
   "name": "payper",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Payper allows you to fold code into reusable, sharable bundles, while only paying for what you use.",
   "main": "index.js",
   "exports": {
