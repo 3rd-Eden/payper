@@ -24,9 +24,13 @@ app.use(cors);
 app.get('/payper/*', async function intercept(req, res) {
   console.log('[express] Handling inbound API request for bundles', req.url);
 
-  res.set('Content-Type', 'text/javascript');
+  const { source } = await payper.concat(req.url);
 
-  const { source } = payper.concat(req.url);
+  res.writeHead(200, {
+    'Content-Type': 'text/javascript',
+    'Content-Length': Buffer.byteLength(source)
+  });
+
   res.end(source);
 });
 
