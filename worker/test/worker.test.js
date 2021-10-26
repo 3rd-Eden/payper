@@ -416,7 +416,7 @@ describe('Payper Service Worker', function () {
     });
 
     it('includes Server-Timing headers', async function () {
-      const response = await payper.concat({
+      const response = await payper.respond({
         request: {
           url: 'http://www.example.com/payper/cached@1.2.3',
           method: 'GET'
@@ -431,7 +431,7 @@ describe('Payper Service Worker', function () {
     });
 
     it('returns cached response', async function () {
-      const response = await payper.concat({
+      const response = await payper.respond({
         request: {
           url: 'http://www.example.com/payper/cached@1.2.3',
           method: 'GET'
@@ -461,7 +461,7 @@ describe('Payper Service Worker', function () {
     });
 
     it('returns merges multiple cached responses', async function () {
-      const response = await payper.concat({
+      const response = await payper.respond({
         request: {
           url: 'http://www.example.com/payper/cached@1.2.3/another-cached@2.2.3',
           method: 'GET'
@@ -503,7 +503,7 @@ describe('Payper Service Worker', function () {
         cache: false
       });
 
-      const response = await payper.concat({
+      const response = await payper.respond({
         request: {
           url: 'http://www.example.com/payper/fetched-result@1.2.3',
           method: 'GET'
@@ -552,7 +552,7 @@ describe('Payper Service Worker', function () {
         cache: false
       });
 
-      const response = await payper.concat({
+      const response = await payper.respond({
         request: {
           url: 'http://www.example.com/payper/fetched-result@1.2.3/fetched-another@1.2.3',
           method: 'GET'
@@ -602,7 +602,7 @@ describe('Payper Service Worker', function () {
         cache: false
       });
 
-      const response = await payper.concat({
+      const response = await payper.respond({
         request: {
           url: 'http://www.example.com/payper/fetched-result@1.2.3/cached@1.2.3/fetched-another@1.2.3/another-cached@2.2.3',
           method: 'GET'

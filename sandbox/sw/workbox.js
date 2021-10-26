@@ -8,7 +8,7 @@ registerRoute(
     return payper.matches(request);
   },
   async function handler({ event }) {
-    return await payper.concat(event);
+    return await payper.respond(event);
   }
 );
 

@@ -101,7 +101,6 @@ To make this work we'll be using the following API methods:
 
 - [matches](#matches)
 - [concat](#concat)
-- [stream](#stream)
 - [intercept](#intercept)
 
 #### matches
@@ -127,48 +126,16 @@ It accepts the `/payper/{more paths here}` URL as first argument. The `concat`
 method is an **asynchronous** function and should be called with `await` or
 processed as Promise.
 
-The function returns a formatted bundle that matches our Service Workers
+The function returns formatted bundle as `source` that matches our Service Workers
 expectations in terms of formatting and structure. This result should be send
 back as response to the incoming HTTP request. It's worth noting that this is a
 JavaScript bundle and that the appropriate `Content-Type` headers needs to be
 set to `text/javascript` in order to correctly executed in the browser.
 
 ```js
-const response = await payper.concat(request);
-```
+const { source } = await payper.concat(request);
 
-#### stream
-
-```js
-const stream = payper.stream(request);
-return stream.pipe(response);
-```
-
-The stream that is returned is not gzipped, if you want to further compress
-the response you can pipe the stream into a gzip, deflate, or brotli
-compression stream using Node.js build-in `zlib` library:
-
-```js
-const zlib = require('zlib');
-
-http.createServer(function example(req, res) {  
-  if (!payper.matches(req)) return res.writeHead(404).end('nope');
-
-  res.writeHead(200, {
-    'Content-Type': 'text/javascript',
-    'Content-Encoding': 'brotli'
-  });
-
-  const stream = payper.stream(req);
-
-  //
-  // Note: we're just blindly returning a brotli stream here, normally you
-  // would parse the Accept-Encoding header from the request and return a
-  // matching compression stream. This is merely an example of how you
-  // compress the response.
-  //
-  return stream.pipe(zlib.createBrotliCompress()).pipe(res);
-}
+console.log(source);
 ```
 
 #### intercept

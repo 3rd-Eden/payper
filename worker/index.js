@@ -176,7 +176,7 @@ class PayperWorker {
   fetch(event) {
     if (!this.matches(event.request)) return false;
 
-    event.respondWith(this.concat(event));
+    event.respondWith(this.respond(event));
     return true;
   }
 
@@ -187,7 +187,7 @@ class PayperWorker {
    * @returns {Response} Response for the ServiceWorker, guaranteed.
    * @public
    */
-  async concat(event) {
+  async respond(event) {
     const { root } = this.settings;
     const url = event.request.url;
     let data;

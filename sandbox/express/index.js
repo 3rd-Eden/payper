@@ -21,13 +21,13 @@ app.use(cors);
 //
 // Handle the /payper/* API requests.
 //
-app.get('/payper/*', function intercept(req, res) {
+app.get('/payper/*', async function intercept(req, res) {
   console.log('[express] Handling inbound API request for bundles', req.url);
 
   res.set('Content-Type', 'text/javascript');
 
-  const stream = payper.stream(req.url);
-  stream.pipe(res);
+  const { source } = payper.concat(req.url);
+  res.end(source);
 });
 
 //

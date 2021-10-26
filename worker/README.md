@@ -228,7 +228,7 @@ your pre-existing listeners and work together with your code.
 To make this work we'll be using the following API methods:
 
 - [matches](#matches)
-- [concat](#concat)
+- [respond](#respond)
 - [register](#register)
 - [fetch](#fetch)
 - [message](#message)
@@ -246,9 +246,9 @@ request or not
 payper.matches(request); // returns true or false.
 ```
 
-#### concat
+#### respond
 
-It accepts the `event` (FetchEvent) as first argument. The `concat` method is an
+It accepts the `event` (FetchEvent) as first argument. The `respond` method is an
 **asynchronous** function and should be called with `await` or processed as
 Promise.
 
@@ -257,7 +257,7 @@ can be a fresh HTTP response in the case an fully uncached request, a fully
 cached result, or a combination of both.
 
 ```js
-const response = await payper.concat(event);
+const response = await payper.respond(event);
 ```
 
 #### register
@@ -282,7 +282,7 @@ payper.register(['activate', 'install']);
 #### fetch
 
 The `fetch` method is designed to handle the incoming `fetch` event for
-payper. It responds with the result of [concat](#concat) when the request
+payper. It responds with the result of [respond](#respond) when the request
 [matches](#matches). The `fetch` method is an **asynchronous** function and
 should be called with `await` or processed as promise. The function expects the
 `event` of the `fetch` event as first argument and returns a `boolean` as
@@ -393,7 +393,7 @@ registerRoute(
     return payper.matches(request);
   },
   async function handler({ event }) {
-    return await payper.concat(event);
+    return await payper.respond(event);
   }
 );
 

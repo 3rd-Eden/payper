@@ -1,17 +1,18 @@
 # Payper
 
 Payper is a bundle loading strategy that is designed to promote re-use of
-(smaller) bundles across pages. It tries to solve the problem where you want to
-bundle only the code that is used on the page (pay for what you use) but still
-leverage the code that was loaded on previous pages without having to re-bundle it.
+(smaller) bundles across multiple pages. It tries to solve the problem where you
+want to bundle only the code that is used on the page (pay for what you use) but
+still leverage the code that was loaded on previous pages (e.g. through cache)
+without having to re-bundle it.
 
 Payper provides a HTTP API that will automatically concatenate multiple bundles
-into a single HTTP request. This HTTP request is then intercepted by our Service
-Worker which caches the each of the concatenated bundles separately. When a new
-HTTP request is made it removes all previously cached bundles from the HTTP
-request so only new bundles are requested at the HTTP API and then stitches the
-newly requested bundles, and the previously cached bundles together and creates
-the full HTTP response.
+into a single HTTP request. This HTTP request is then intercepted by our
+ServiceWorker which caches the each of the concatenated bundles separately using
+the `Caches` API. When a new HTTP request is made it removes all previously
+cached bundles from the HTTP request so only uncached bundles are requested at
+the HTTP API and then stitches the newly requested bundles, and the previously
+cached bundles together and creates the full HTTP response.
 
 This project is not a replacement of your bundling tool chain, it merely
 optimizes the delivery of bundles. You simply add your bundles to the system and
@@ -64,8 +65,8 @@ performant option.
 
 Payper is unopinionated about your bundling process. It doesn't matter which
 tools you use, WebPack, Rollup, Parcel, O.G. file concatenation. It will just
-bundle it together with the rest of the requested bundles and execute it in the 
-specified order. The only **hard requirement** that we do impose on your bundle 
+bundle it together with the rest of the requested bundles and execute it in the
+specified order. The only **hard requirement** that we do impose on your bundle
 are filename restrictions.
 
 - **The file name follows the npm package name like naming convention** The name
@@ -131,7 +132,11 @@ the bundle that cause the 500 response have also been logged on the server. If
 you do not have a `logger` configured on the server it will automatically be
 written to `STDERR` using `console.error`.
 
-[server]: ./serve/
+## License
+
+The project is licensed as [MIT](./LICENSE).
+
+[server]: ./server/
 [worker]: ./worker
 [sandbox]: ./sandbox
 [bundle]: ./server#adding-bundles-to-the-system

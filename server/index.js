@@ -76,7 +76,7 @@ class PayperServer {
    * @private
    */
   async respond(req, res) {
-    const contents = await this.concat(req.url);
+    const { source } = await this.concat(req.url);
 
     //
     // @TODO: Optimize the response, check if response streaming makes more
@@ -92,29 +92,10 @@ class PayperServer {
     //
     res.writeHead(200, {
       'Content-Type': 'text/javascript',
-      'Content-Length': Buffer.byteLength(contents)
+      'Content-Length': Buffer.byteLength(source)
     });
 
-    res.end(contents);
-  }
-
-  /**
-   * Streamable interface of our `payper#concat` method.
-   *
-   * @param {Array} url The `/payper/*` URL that we need to concatenate
-   * @returns {ReadableStream} Readable stream that writes the responses.
-   * @public
-   */
-  stream(url) {
-    const responses = [ prefix, ...this.request(url), suffix ];
-
-    return new Readable({
-      async read() {
-        if (!responses.length) return this.push(null);
-
-        this.push(await Promise.resolve(responses.shift()));
-      }
-    });
+    res.end(source);
   }
 
   /**
@@ -140,8 +121,9 @@ class PayperServer {
     const gatherSources = async ({ name, version, bundle }) => {
       const handler = this.bundles.get('bundle:'+ name);
 
-      let meta = this.meta({ name, version, cache: true });
+      let comment = this.comment({ name, version, cache: true });
       let contents = '';
+      let cache = true;
 
       try {
         //
@@ -167,7 +149,8 @@ class PayperServer {
         this.logger.error('Failed to generate the contents of bundle'+ bundle, e);
 
         contents = await this.failure({ name, version, bundle, error: e.message });
-        meta = this.meta({ name, version, cache: false });
+        comment = this.comment({ name, version, cache: false });
+        cache = false;
       }
 
       //
@@ -179,35 +162,64 @@ class PayperServer {
       //
       if (!contents) {
         contents = await this.missing({ name, version, bundle });
-        meta = this.meta({ name, version, cache: false });
+        comment = this.comment({ name, version, cache: false });
+        cache = false;
       }
 
       //
-      // Force an addition \n after the meta, just make it clear when inspecting
+      // Force an addition \n after the comment, just make it clear when inspecting
       // the generated bundles where the bundles end. Spending 1 new-line to
       // improve readability of the code is a fine trade-off.
       //
-      return [contents, meta, ''].join('\n');
+      return {
+        source: [contents, comment, ''].join('\n'),   // Source of the bundle.
+        version,                                      // Version of the bundle.
+        bundle,                                       // Name version pair.
+        cache,                                        // Cache response.
+        name                                          // Name of the bundle.
+      };
     }
 
     return requested.map(gatherSources);
   }
 
   /**
-   * Concatenate the requested bundles into a singular request that can be returned
-   * to our users.
+   * Concatenate the requested bundles into a singular request that can be
+   * returned to our users.
    *
    * @param {Array} url The `/payper/*` URL that we need to concatenate
    * @returns {String} The bundle that we need to write.
    * @public
    */
   async concat(url) {
-    const payload = await Promise.all(this.request(url));
-    return [ prefix, ...payload, suffix ].join('\n');
+    const responses = await Promise.all(this.request(url));
+    const payload = [];
+    const issues = [];
+
+    //
+    // Process the responses of each bundle request as we want to tell the
+    // developer if it's safe to cache this response e.g. when there aren't
+    // any issue during the bundling process.
+    //
+    // When a 404, or 500 error happend we want signal the developer that it
+    // might not be safe to cache this response as we were unable to create
+    // a successful response.
+    //
+    responses.forEach(function process(response) {
+      payload.push(response.source);
+
+      if (!response.cache) issues.push(response.bundle);
+    });
+
+    return {
+      source: [ prefix, ...payload, suffix ].join('\n'),
+      cache: !issues.length,
+      issues
+    }
   }
 
   /**
-   * Creates the trailing meta banner for each included bundle. The banner is
+   * Creates the trailing comment banner for each included bundle. The banner is
    * used for bundle identification purposes as it provides the following
    * information to the service worker about the code is included above it:
    *
@@ -221,7 +233,7 @@ class PayperServer {
    * @returns {String}
    * @private
    */
-  meta(data) {
+  comment(data) {
     return `/*! Payper meta(${JSON.stringify(data)}) */`;
   }
 }

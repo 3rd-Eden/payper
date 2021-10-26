@@ -32,12 +32,12 @@ module.exports = async function bootstrapped({ ssl, port, url }) {
   fastify.get('/payper/*', async function intercept(req, reply) {
     if (cors(req, reply.raw)) return;
 
-    const response = await payper.concat(req.url);
+    const { source } = await payper.concat(req.url);
 
     console.log('[fastify] Handling inbound API request for bundles', req.url);
 
     reply.type('text/javascript');
-    return response;
+    return source;
   });
 
   //

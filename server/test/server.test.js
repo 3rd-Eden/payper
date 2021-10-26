@@ -28,16 +28,20 @@ describe('Payper Server', function () {
     });
   });
 
-  describe('Meta data', function () {
+  describe('Meta data comment', function () {
+    it('a function', function () {
+      assume(payper.comment).is.a('function');
+    });
+
     it('returns a JS comment', function () {
-      const comment = payper.meta({ name: 'foo', version: '1.2.3' });
+      const comment = payper.comment({ name: 'foo', version: '1.2.3' });
 
       assume(comment).startsWith('/*! Payper');
       assume(comment).endsWith('*/');
     });
 
     it('includes the provided data as meta text', function () {
-      const comment = payper.meta({ name: 'foo', version: '1.2.3', cache: true });
+      const comment = payper.comment({ name: 'foo', version: '1.2.3', cache: true });
 
       assume(comment).includes('meta({"name":"foo","version":"1.2.3","cache":true})');
     });
@@ -57,49 +61,84 @@ describe('Payper Server', function () {
       const result = await payper.concat('/payper/foo@1.2.9');
 
       assume(called).is.true();
+      assume(result).exists();
     });
 
-    it('includes the meta as trailing content', async function () {
-      payper.add('foo', async function handler({ version }) {
+    it('returns an object with source and meta data', async function () {
+      payper.add('foo', async function handler({ version, name, bundle }) {
+        assume(version).equals('1.2.9');
+        assume(name).equals('foo');
+        assume(bundle).equals('foo@1.2.9');
+
         return 'this is the actual bundle content that we returned';
       });
 
       const result = await payper.concat('/payper/foo@1.2.9');
 
-      assume(result).is.a('string');
-      assume(result).includes('this is the actual bundle content that we returned');
-      assume(result).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":true}) */');
+      assume(result).is.a('object');
+      assume(result.source).is.a('string');
+      assume(result.source).includes('this is the actual bundle content that we returned');
+
+      assume(result.cache).is.a('boolean');
+      assume(result.cache).is.true();
+
+      assume(result.issues).is.a('array');
+      assume(result.issues).is.length(0);
+    });
+
+    it('includes the meta as trailing content', async function () {
+      payper.add('foo', async function handler({ version, name, bundle }) {
+        assume(version).equals('1.2.9');
+        assume(name).equals('foo');
+        assume(bundle).equals('foo@1.2.9');
+
+        return 'this is the actual bundle content that we returned';
+      });
+
+      const result = await payper.concat('/payper/foo@1.2.9');
+
+      assume(result.source).is.a('string');
+      assume(result.source).includes('this is the actual bundle content that we returned');
+      assume(result.source).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":true}) */');
     });
 
     it('returns a console blob when an unknown bundle is requested', async function () {
       const result = await payper.concat('/payper/foo@1.2.9');
 
-      assume(result).is.a('string');
-      assume(result).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":false}) */');
-      assume(result).includes('404: Could not find the requested bundle');
-      assume(result).includes('https://github.com/3rd-Eden/payper/tree/main/api#missing');
+      assume(result.source).is.a('string');
+      assume(result.source).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":false}) */');
+      assume(result.source).includes('404: Could not find the requested bundle');
+      assume(result.source).includes('https://github.com/3rd-Eden/payper/tree/main/api#missing');
     });
 
     it('can evaluate the failed bundle console blob', async function () {
-      payper.add('foo', async function handler({ version }) {
+      payper.add('foo', async function handler({ version, name, bundle }) {
+        assume(version).equals('1.2.9');
+        assume(name).equals('foo');
+        assume(bundle).equals('foo@1.2.9');
+
         throw new Error('This thrown error is intentional, it should appear in your test output');
       });
 
       const result = await payper.concat('/payper/foo@1.2.9');
 
-      const funk = new Function('console', result);
+      const funk = new Function('console', result.source);
       assume(funk.bind(funk, console)).does.not.throw();
     });
 
     it('can evaluate the missing bundle console blob', async function () {
       const result = await payper.concat('/payper/foo@1.2.9');
 
-      const funk = new Function('console', result);
+      const funk = new Function('console', result.source);
       assume(funk.bind(funk, console)).does.not.throw();
     });
 
     it('returns a console blob when an known bundle returns no data', async function () {
-      payper.add('foo', async function handler({ version }) {
+      payper.add('foo', async function handler({ version, name, bundle }) {
+        assume(name).equals('foo');
+        assume(version).is.either(['1.2.9', '2.2.9']);
+        assume(bundle).is.either(['foo@1.2.9', 'foo@2.2.9']);
+
         if (version === '1.2.9') return 'this is the actual bundle content that we returned';
 
         return '';
@@ -107,45 +146,68 @@ describe('Payper Server', function () {
 
       const result = await payper.concat('/payper/foo@1.2.9');
 
-      assume(result).is.a('string');
-      assume(result).includes('this is the actual bundle content that we returned');
-      assume(result).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":true}) */');
+      assume(result.source).is.a('string');
+      assume(result.source).includes('this is the actual bundle content that we returned');
+      assume(result.source).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":true}) */');
+
+      assume(result.issues).is.length(0);
+      assume(result.cache).true();
 
       const missing = await payper.concat('/payper/foo@2.2.9');
 
-      assume(missing).is.a('string');
-      assume(missing).includes('/*! Payper meta({"name":"foo","version":"2.2.9","cache":false}) */');
-      assume(missing).includes('404: Could not find the requested bundle');
-      assume(missing).includes('https://github.com/3rd-Eden/payper/tree/main/api#missing');
+      assume(missing.source).is.a('string');
+      assume(missing.source).includes('/*! Payper meta({"name":"foo","version":"2.2.9","cache":false}) */');
+      assume(missing.source).includes('404: Could not find the requested bundle');
+      assume(missing.source).includes('https://github.com/3rd-Eden/payper/tree/main/api#missing');
+
+      assume(missing.cache).false();
+      assume(missing.issues).is.length(1);
+      assume(missing.issues[0]).equals('foo@2.2.9');
     });
 
     it('combines multiple bundles into a single response', async function () {
-      payper.add('foo', async function handler({ version }) {
+      payper.add('foo', async function handler({ version, name, bundle }) {
+        assume(version).equals('1.2.9');
+        assume(name).equals('foo');
+        assume(bundle).equals('foo@1.2.9');
+
         return 'this is the actual bundle content that we returned';
       });
 
       const result = await payper.concat('/payper/foo@1.2.9/bar@2.2.9')
 
-      assume(result).is.a('string');
-      assume(result).includes('this is the actual bundle content that we returned');
-      assume(result).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":true}) */');
-      assume(result).includes('/*! Payper meta({"name":"bar","version":"2.2.9","cache":false}) */');
-      assume(result).includes('404: Could not find the requested bundle');
-      assume(result).includes('https://github.com/3rd-Eden/payper/tree/main/api#missing');
+      assume(result.source).is.a('string');
+      assume(result.source).includes('this is the actual bundle content that we returned');
+      assume(result.source).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":true}) */');
+      assume(result.source).includes('/*! Payper meta({"name":"bar","version":"2.2.9","cache":false}) */');
+      assume(result.source).includes('404: Could not find the requested bundle');
+      assume(result.source).includes('https://github.com/3rd-Eden/payper/tree/main/api#missing');
+
+      assume(result.cache).is.false();
+      assume(result.issues).is.length(1);
+      assume(result.issues[0]).equals('bar@2.2.9');
     });
 
     it('returns a console blob when the handler throws an error', async function () {
-      payper.add('foo', async function handler({ version }) {
+      payper.add('foo', async function handler({ version, name, bundle }) {
+        assume(version).equals('1.2.9');
+        assume(name).equals('foo');
+        assume(bundle).equals('foo@1.2.9');
+
         throw new Error('This thrown error is intentional, it should appear in your test output');
       });
 
       const result = await payper.concat('/payper/foo@1.2.9');
 
-      assume(result).is.a('string');
-      assume(result).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":false}) */');
-      assume(result).includes('500: An error occured while loading bundle');
-      assume(result).includes('This thrown error is intentional, it should appear in your test output');
-      assume(result).includes('https://github.com/3rd-Eden/payper/tree/main/api#failure');
+      assume(result.source).is.a('string');
+      assume(result.source).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":false}) */');
+      assume(result.source).includes('500: An error occured while loading bundle');
+      assume(result.source).includes('This thrown error is intentional, it should appear in your test output');
+      assume(result.source).includes('https://github.com/3rd-Eden/payper/tree/main/api#failure');
+
+      assume(result.cache).is.false();
+      assume(result.issues).is.length(1);
+      assume(result.issues[0]).equals('foo@1.2.9');
     });
   });
 
