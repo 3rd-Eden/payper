@@ -67,3 +67,17 @@ payper.matches({ url: '/payper/foo@bar', method: 'GET' });     // true
 payper.matches({ url: '/payper/foo@bar', method: 'POST' });    // false
 payper.matches({ url: '/something-else', method: 'GET' });     // false
 ```
+
+### bundle
+
+Generates the bundle identifier of a package name and version combination. This
+provides consistent naming throughout the codebase.
+
+It accepts 2 arguments:
+
+- `name` Name of the bundle.
+- `version` The version number of the bundle.
+
+```js
+payper.id('foo', '12.4.5');   // foo@12.4.5
+```

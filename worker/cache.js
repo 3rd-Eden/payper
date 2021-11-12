@@ -1,4 +1,5 @@
 const format = require('../utils/format.js');
+const id = require('../utils/id.js');
 
 /**
  * Normalized `cache.match(url, opts)` options so we don't have to write it
@@ -29,7 +30,7 @@ class CacheStorage {
     * @public
    */
   constructor({ version='0.0.0', path='payper', type='text/javascript' } = {}) {
-    this.name = `${path}@${type}@${version}`;
+    this.name = id(path, type, version);
     this.format = format.bind(path);
     this.version = version;
     this.type = type;
