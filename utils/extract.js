@@ -19,11 +19,16 @@ module.exports = function extract(url) {
   const pathnames = (url.split(`/${this}/`).pop() || '');
   const matcher = /((?:@[^/@]+\/)?[^/@]+)(?:@([^/]+))?/g;
   const bundles = [];
+  const dedupe = {};
   let match;
 
   while ((match = matcher.exec(pathnames)) !== null) {
     const [bundle, name, version] = match;
+
+    if (bundle in dedupe) continue;
+
     bundles.push({ name, version, bundle });
+    dedupe[bundle] = true;
   }
 
   return bundles;

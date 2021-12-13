@@ -3,9 +3,14 @@ const matches = require('../matches');
 const extract = require('../extract');
 const format = require('../format');
 const assume = require('assume');
+const id = require('../id');
 
 describe('Payper Utils', function () {
-  describe('matches', function () {
+  it('throws on direct import', function () {
+    assume(() => require('../')).throws('Not the import you are looking for');
+  });
+
+  describe('#matches', function () {
     [
       { url: '/deep/payper/foo@bar', method: 'GET', expected: true },
       { url: '/deep/payper/foo@bar/bar@0.0.0/baz@1.2.3', method: 'GET', expected: true },
@@ -35,7 +40,7 @@ describe('Payper Utils', function () {
     })
   });
 
-  describe('format', function () {
+  describe('#format', function () {
     [
       { path: 'banana', base: 'http://example.com/nested/url', href: 'http://example.com/payper/banana' },
       { path: ['ban', 'ana'], base: 'http://example.com/nested/url', href: 'http://example.com/payper/ban/ana' }
@@ -54,7 +59,7 @@ describe('Payper Utils', function () {
     });
   });
 
-  describe('extract', function () {
+  describe('#extract', function () {
     [
       { path: '/payper/', result: []},
       { path: '/payper/foo@bar', result: [
@@ -69,6 +74,9 @@ describe('Payper Utils', function () {
       { path: '/payper/foo@bar/@ux/accordion@1.2.3', result: [
         { name: 'foo', version: 'bar', bundle: 'foo@bar' },
         { name: '@ux/accordion', version: '1.2.3', bundle: '@ux/accordion@1.2.3' }
+      ]},
+      { path: '/payper/foo@bar/foo@bar', result: [
+        { name: 'foo', version: 'bar', bundle: 'foo@bar' }
       ]},
       { path: '/payper/vendor@1.2.8/accordion@8.9.1', result: [
         { name: 'vendor', version: '1.2.8', bundle: 'vendor@1.2.8' },
@@ -105,6 +113,20 @@ describe('Payper Utils', function () {
 
     it('uses the `this` value to configure the path it trigger on', function () {
       assume(extract.call('banana', '/banana/foo@bar')).deep.equals([{ name: 'foo', version: 'bar', bundle: 'foo@bar' }]);
+    });
+  });
+
+  describe('#id', function () {
+    it('generates name + version combo', function () {
+      assume(id('foo', 'bar')).equals('foo@bar');
+    });
+
+    it('generates the name from all arguments', function () {
+      assume(id('foo', 'bar', 'baz')).equals('foo@bar@baz');
+    });
+
+    it('ignores the version when undefined', function () {
+      assume(id('foo', undefined)).equals('foo');
     });
   });
 });

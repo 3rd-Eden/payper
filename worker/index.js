@@ -1,7 +1,8 @@
+const matches = require('../utils/matches.js');
+const extract = require('../utils/extract.js');
 const format = require('../utils/format.js');
-const matches = require('../utils/matches');
-const extract = require('../utils/extract');
 const CacheStorage = require('./cache.js');
+const id = require('../utils/id.js');
 
 /**
  * The Payper ServiceWorker is our request optimization strategy. It allows
@@ -353,7 +354,7 @@ class PayperWorker {
       const blob = new Blob([data], { type: this.settings.type });
       const response = new Response(blob, { status: 200, statusText: 'OK' });
       const { name, version, cache } = JSON.parse(metadata);
-      const bundle = `${name}@${version}`;
+      const bundle = id(name, version);
 
       //
       // Include the meta data, bundle name, and data as chunk information so we

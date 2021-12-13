@@ -5,7 +5,11 @@
   "main": "index.js",
   "exports": {
     "./worker": "./worker/index.js",
-    "./server": "./server/index.js"
+    "./server": "./server/index.js",
+    "./utils/extract": "./utils/extract.js",
+    "./utils/matches": "./utils/matches.js",
+    "./utils/format": "./utils/format.js",
+    "./utils/id": "./utils/id.js"
   },
   "scripts": {
     "test": "c8 mocha '{,+(worker|server|utils)/**/}*.test.js'",
