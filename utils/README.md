@@ -68,7 +68,7 @@ payper.matches({ url: '/payper/foo@bar', method: 'POST' });    // false
 payper.matches({ url: '/something-else', method: 'GET' });     // false
 ```
 
-### bundle
+### id
 
 Generates the bundle identifier of a package name and version combination. This
 provides consistent naming throughout the codebase.
