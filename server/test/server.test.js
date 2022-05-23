@@ -111,6 +111,47 @@ describe('Payper Server', function () {
       assume(result.source).includes('https://github.com/3rd-Eden/payper/tree/main/api#missing');
     });
 
+    it('allows a catch-all handler to be assigned', async function () {
+      let called = false;
+
+      payper.add(async function handler({ version }) {
+        assume(version).equals('1.2.9');
+        called = true;
+
+        return 'bar';
+      });
+
+      payper.add(async function handler() {
+        throw new Error('I should not be called as result was handled');
+      });
+
+      const result = await payper.concat('/payper/foo@1.2.9');
+
+      assume(called).is.true();
+      assume(result).exists();
+    });
+
+    it('allows multiple catch-all handlers to be assigned', async function () {
+      let called = [];
+
+      payper.add('*', async function handler({ version }) {
+        assume(version).equals('1.2.9');
+        called.push(1);
+      });
+
+      payper.add('*', async function handler({ version }) {
+        assume(version).equals('1.2.9');
+        called.push(2);
+
+        return 'bar';
+      });
+
+      const result = await payper.concat('/payper/foo@1.2.9');
+
+      assume(called).deep.equals([1, 2]);
+      assume(result).exists();
+    });
+
     it('can evaluate the failed bundle console blob', async function () {
       payper.add('foo', async function handler({ version, name, bundle }) {
         assume(version).equals('1.2.9');

@@ -22,6 +22,7 @@ class PayperServer {
    */
   constructor({ path='payper', logger=console } = {}) {
     this.bundles = new Map();
+    this.asterisk = [];
 
     this.logger = logger;
     this.missing = missing;
@@ -43,7 +44,9 @@ class PayperServer {
    * @public
    */
   add(name, handler) {
-    if (typeof name === 'function') return this.bundles.set('*', name);
+    if (typeof name === 'function' || name === '*') {
+      return this.asterisk.push(handler || name);
+    }
 
     if (this.bundles.has('bundle:'+ name)) {
       throw new Error(`Duplicate bundle(${name}) added`);
@@ -108,7 +111,6 @@ class PayperServer {
    */
   request(url) {
     const requested = this.extract(url);
-    const asterisk = this.bundles.get('*');
 
     /**
      * Gather the source of the requested bundle.
@@ -120,6 +122,7 @@ class PayperServer {
      */
     const gatherSources = async ({ name, version, bundle }) => {
       const handler = this.bundles.get('bundle:'+ name);
+      const asterisk = this.asterisk.slice(0);
 
       let comment = this.comment({ name, version, cache: true });
       let contents = '';
@@ -142,8 +145,10 @@ class PayperServer {
         // externally hosted e.g. in a database and you just to use that for
         // lookups instead.
         //
-        if (!handler && asterisk) {
-          contents = await asterisk({ name, version, bundle });
+        if (!handler && asterisk.length) {
+          while (asterisk.length && !contents) {
+            contents = await asterisk.shift()({ name, version, bundle });
+          }
         }
       } catch (e) {
         this.logger.error('Failed to generate the contents of bundle'+ bundle, e);
