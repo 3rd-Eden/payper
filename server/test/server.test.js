@@ -53,12 +53,40 @@ describe('Payper Server', function () {
 
       payper.add('foo', async function handler({ version }) {
         assume(version).equals('1.2.9');
-        called = true;
 
+        called = true;
         return 'bar';
       });
 
       const result = await payper.concat('/payper/foo@1.2.9');
+
+      assume(called).is.true();
+      assume(result).exists();
+    });
+
+    it('can pass custom information to the bundle handlers', async function () {
+      let called = false;
+
+      payper.add('foo', async function handler(data) {
+        assume(data).is.a('object');
+
+        // default information
+        assume(data.version).equals('1.2.9');
+        assume(data.name).equals('foo');
+        assume(data.bundle).equals('foo@1.2.9');
+
+        // custom information
+        assume(data.additional).equals('information');
+        assume(data.foo).equals('bar');
+
+        called = true;
+        return 'bar';
+      });
+
+      const result = await payper.concat('/payper/foo@1.2.9', {
+        additional: 'information',
+        foo: 'bar'
+      });
 
       assume(called).is.true();
       assume(result).exists();
@@ -114,10 +142,11 @@ describe('Payper Server', function () {
     it('allows a catch-all handler to be assigned', async function () {
       let called = false;
 
-      payper.add(async function handler({ version }) {
+      payper.add(async function handler({ version, what }) {
         assume(version).equals('1.2.9');
-        called = true;
+        assume(what).equals('extra');
 
+        called = true;
         return 'bar';
       });
 
@@ -125,7 +154,9 @@ describe('Payper Server', function () {
         throw new Error('I should not be called as result was handled');
       });
 
-      const result = await payper.concat('/payper/foo@1.2.9');
+      const result = await payper.concat('/payper/foo@1.2.9', {
+        what: 'extra'
+      });
 
       assume(called).is.true();
       assume(result).exists();

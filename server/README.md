@@ -122,18 +122,50 @@ http.createServer(function (req, res) {
 
 #### concat
 
-It accepts the `/payper/{more paths here}` URL as first argument. The `concat`
-method is an **asynchronous** function and should be called with `await` or
-processed as Promise.
-
-The function returns formatted bundle as `source` that matches our Service Workers
-expectations in terms of formatting and structure. This result should be send
-back as response to the incoming HTTP request. It's worth noting that this is a
-JavaScript bundle and that the appropriate `Content-Type` headers needs to be
-set to `text/javascript` in order to correctly executed in the browser.
+It accepts the `/payper/{more paths here}` URL as first argument. The second
+argument can be an optional object that passes additional information to the
+bundle handlers it's about to invoke. The `concat` method is an **asynchronous**
+function and should be called with `await` or processed as Promise.
 
 ```js
-const { source } = await payper.concat(request);
+payper.add('example', async function ({ browser, version }) {
+  if (browser == 'ie') return await specificIEBundle();
+
+  // do handler stuff as specified above
+});
+
+await payper.concat(request, {
+  //
+  // Example of passing additional information to your handler. In this case
+  // we are providing it with an additional browser property so your handler
+  // could return browser specific bundles if you wish. Or add more information
+  // for logging purposes. The sky is the limit. The only restriction is that
+  // you cannot override our existing keys (version, name, bundle).
+  //
+  browser: userAgent(request.headers.useragent)
+});
+```
+
+> NOTE: Be sure to send the correct `Vary` headers when the response is changed
+> based on the additional data that is send with the request.
+
+The function returns an object with the following properties:
+
+- `source` The formatted bundle that matches our Service Workers expectations in
+  terms of formatting and structure. This should be send back as response to the
+  incoming HTTP request. (Do note that you're also responsible for setting the
+  correct response headers such as `Content-Type: text/javascript`)
+- `cache` This boolean indicates if there were any issues during the creation
+  of the bundle. If nothing bad happened it's "safe" to cache the response as no
+  bundles are missing or created a faulty response.
+- `issues` An array of problems that happened during the compilation process.
+  Note that we always generate a `source` response that can be send to the
+  HTTP request (as your code _might_ still function without it so it's better to
+  send something than nothing). When problems happened this array will contain
+  the `Error` objects and `cache` key will be set to `false`.
+
+```js
+const { source, cache, issues } = await payper.concat(request);
 
 console.log(source);
 ```

@@ -106,10 +106,11 @@ class PayperServer {
    * resolved to bundle contents.
    *
    * @param {Array} url The `/payper/*` URL that we need to concatenate
+   * @param {Object} additional Additional props that the handlers should receive.
    * @returns {Array} Ordered array of Promises.
    * @private
    */
-  request(url) {
+  request(url, additional = {}) {
     const requested = this.extract(url);
 
     /**
@@ -121,6 +122,7 @@ class PayperServer {
      * @private
      */
     const gatherSources = async ({ name, version, bundle }) => {
+      const payload = { ...additional, name, version, bundle };
       const handler = this.bundles.get('bundle:'+ name);
       const asterisk = this.asterisk.slice(0);
 
@@ -136,7 +138,7 @@ class PayperServer {
         // version is missing and no bundle could be generated.
         //
         if (handler) {
-          contents = await handler({ name, version, bundle });
+          contents = await handler(payload);
         }
 
         //
@@ -147,7 +149,7 @@ class PayperServer {
         //
         if (!handler && asterisk.length) {
           while (asterisk.length && !contents) {
-            contents = await asterisk.shift()({ name, version, bundle });
+            contents = await asterisk.shift()(payload);
           }
         }
       } catch (e) {
@@ -193,11 +195,12 @@ class PayperServer {
    * returned to our users.
    *
    * @param {Array} url The `/payper/*` URL that we need to concatenate
+   * @param {Object} additional Additional props that the handlers should receive.
    * @returns {String} The bundle that we need to write.
    * @public
    */
-  async concat(url) {
-    const responses = await Promise.all(this.request(url));
+  async concat(url, additional) {
+    const responses = await Promise.all(this.request(url, additional));
     const payload = [];
     const issues = [];
 
