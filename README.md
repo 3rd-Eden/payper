@@ -36,6 +36,8 @@ This single module provides access to both client and server libraries:
 
 In addition to those projects we also host:
 
+- [`payper/preset`][preset] Take Payper beyond JavaScript bundling.
+- [`payper/utils`][utils] Utilities that used on Payper Server and Worker.
 - [Development Sandbox][sandbox] Our sandbox application which runs
   various frameworks which showcases different integration patterns.
 
@@ -138,7 +140,9 @@ The project is licensed as [MIT](./LICENSE).
 
 [server]: ./server/
 [worker]: ./worker
+[utils]: ./utils
 [sandbox]: ./sandbox
+[preset]: ./preset
 [bundle]: ./server#adding-bundles-to-the-system
 [based-on]: https://github.com/3rd-Eden/Spry-Configurator
 [meta]: #meta-data

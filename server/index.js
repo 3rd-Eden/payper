@@ -1,6 +1,6 @@
 const extract = require('../utils/extract.js');
 const matches = require('../utils/matches.js');
-const { prefix, suffix } = require('./iife');
+const JavaScript = require('../preset/js');
 const missing = require('./missing.js');
 const failure = require('./failure.js');
 const { Readable } = require('stream');
@@ -18,12 +18,19 @@ class PayperServer {
    * Creates a new Payper instance.
    *
    * @param {String} path The path the `payper/server` is working on.
+   * @param {Object} console Logger instance to use.
+   * @param {Object} preset File formatting definition.
    * @private
    */
-  constructor({ path='payper', logger=console } = {}) {
+  constructor({
+    path = 'payper',
+    logger = console,
+    preset = JavaScript
+  } = {}) {
     this.bundles = new Map();
     this.asterisk = [];
 
+    this.preset = preset;
     this.logger = logger;
     this.missing = missing;
     this.failure = failure;
@@ -201,6 +208,7 @@ class PayperServer {
    */
   async concat(url, additional) {
     const responses = await Promise.all(this.request(url, additional));
+    const { prefix, suffix } = this.preset;
     const payload = [];
     const issues = [];
 
@@ -242,7 +250,8 @@ class PayperServer {
    * @private
    */
   comment(data) {
-    return `/*! Payper meta(${JSON.stringify(data)}) */`;
+    const { start, end } = this.preset;
+    return `${start} Payper meta(${JSON.stringify(data)}) ${end}`;
   }
 }
 

@@ -1,7 +1,7 @@
-const { suffix, prefix } = require('../../server/iife');
+const { suffix, prefix } = require('payper/preset/js');
 const { describe, it, beforeEach } = require('mocha');
 const CacheStorage = require('./cachestorage');
-const Payper = require('../index.js');
+const Payper = require('payper/worker');
 const assume = require('assume');
 
 describe('Payper Service Worker', function () {

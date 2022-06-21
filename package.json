@@ -9,11 +9,15 @@
     "./utils/extract": "./utils/extract.js",
     "./utils/matches": "./utils/matches.js",
     "./utils/format": "./utils/format.js",
-    "./utils/id": "./utils/id.js"
+    "./utils/id": "./utils/id.js",
+    "./preset/js": "./preset/js.js",
+    "./preset/css": "./preset/css.js",
+    "./preset/svg": "./preset/svg.js"
   },
   "scripts": {
-    "test": "c8 mocha '{,+(worker|server|utils)/**/}*.test.js'",
+    "test": "c8 mocha '{,+(worker|server|utils|preset)/**/}*.test.js'",
     "test:worker": "c8 mocha './worker/**/*.test.js'",
+    "test:preset": "c8 mocha './preset/**/*.test.js'",
     "test:server": "c8 mocha './server/**/*.test.js'",
     "test:utils": "c8 mocha './utils/**/*.test.js'"
   },

@@ -1,6 +1,7 @@
 const { describe, it, beforeEach } = require('mocha');
-const { prefix, suffix } = require('../iife.js');
-const Payper = require('../index.js');
+const JavaScript = require('payper/preset/js');
+const SVG = require('payper/preset/svg');
+const Payper = require('payper/server');
 const assume = require('assume');
 
 describe('Payper Server', function () {
@@ -24,7 +25,7 @@ describe('Payper Server', function () {
 
       assume(function () {
         payper.add('vendor', function () {});
-      }).throws('Duplicate bundle(vendor) added')
+      }).throws('Duplicate bundle(vendor) added');
     });
   });
 
@@ -324,14 +325,48 @@ describe('Payper Server', function () {
           //
           assume(writtenHead.headers['Content-Length']).equals(435);
 
-          assume(contents).includes(prefix);
-          assume(contents).includes(suffix);
+          assume(contents).includes(JavaScript.prefix);
+          assume(contents).includes(JavaScript.suffix);
           assume(contents).includes('this is the returned content');
           assume(contents).includes('/*! Payper meta({"name":"foo","version":"1.2.9","cache":true}) */');
 
           next();
         }
       });
+    });
+  });
+
+  describe('Bundle wrapping', function () {
+    it('wraps the bundle with iife by default', async function () {
+      payper.add('circle', async function () {
+        return `UwU`;
+      });
+
+      const result = await payper.concat('/payper/circle@1.2.9');
+
+      assume(result.source).startsWith(JavaScript.prefix);
+      assume(result.source).endsWith(JavaScript.suffix);
+      assume(result.source).contains(`UwU`);
+      assume(result.source).includes('/*! Payper meta({"name":"circle","version":"1.2.9","cache":true}) */');
+    });
+
+    it('allows custom prefix and suffix', async function () {
+      payper = new Payper({ preset: SVG });
+
+      payper.add('circle', async function () {
+        return `
+          <symbol id="round-thing" width="10" height="10" viewBox="0 0 2 2">
+            <circle cx="1" cy="1" r="1" />
+          </symbol>
+        `.trim();
+      });
+
+      const result = await payper.concat('/payper/circle@1.2.9');
+
+      assume(result.source).startsWith(SVG.prefix);
+      assume(result.source).endsWith(SVG.suffix);
+      assume(result.source).contains(`<symbol id="round-thing" width="10" height="10" viewBox="0 0 2 2">`);
+      assume(result.source).includes('<!-- Payper meta({"name":"circle","version":"1.2.9","cache":true}) -->');
     });
   });
 });
